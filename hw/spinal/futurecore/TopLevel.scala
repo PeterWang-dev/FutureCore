@@ -1,9 +1,9 @@
-package projectname
+package futurecore
 
 import spinal.core._
 
 // Hardware definition
-case class MyTopLevel() extends Component {
+case class TopLevel() extends Component {
   val io = new Bundle {
     val cond0 = in Bool ()
     val cond1 = in Bool ()
@@ -22,6 +22,5 @@ case class MyTopLevel() extends Component {
 }
 
 object Elaborate extends App {
-  Config.spinal.generateVerilog(MyTopLevel())
+  Config.spinal.generateVerilog(TopLevel())
 }
-

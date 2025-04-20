@@ -4,7 +4,7 @@ PRJ = projectname
 
 test:
 	$(call git_commit, "test RTL")
-	mill -i $(PRJ).runMain $(PRJ).Simulate
+	mill -i __.test
 
 formal:
 	$(call git_commit, "verify RTL")
