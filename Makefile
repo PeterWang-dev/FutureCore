@@ -1,6 +1,20 @@
-BUILD_DIR = hw/gen
+PRJ = futurecore
 
-PRJ = projectname
+GEN_DIR = $(abspath hw/gen)
+SIM_DIR = $(abspath sim/verilator)
+ARGS ?=
+IMG ?=
+
+sim:
+	$(call git_commit, "sim RTL")
+	make -C $(SIM_DIR) run ARGS="$(ARGS)" IMG=$(IMG)
+
+verilog:
+	$(call git_commit, "generate verilog")
+	mkdir -p $(GEN_DIR)
+	TARGET_DIR=$(GEN_DIR) mill -i $(PRJ).runMain $(PRJ).Elaborate
+	-rm $(SIM_DIR)/vsrc
+	ln -s $(GEN_DIR) $(SIM_DIR)/vsrc
 
 test:
 	$(call git_commit, "test RTL")
@@ -9,11 +23,6 @@ test:
 formal:
 	$(call git_commit, "verify RTL")
 	mill -i $(PRJ).runMain $(PRJ).Verify
-
-verilog:
-	$(call git_commit, "generate verilog")
-	mkdir -p $(BUILD_DIR)
-	TARGET_DIR=$(BUILD_DIR) mill -i $(PRJ).runMain $(PRJ).Elaborate
 
 help:
 	mill -i $(PRJ).runMain Elaborate --help
@@ -33,10 +42,11 @@ idea:
 clean:
 	-rm -rf $(BUILD_DIR)
 
+clean-verilog:
+	-rm $(SIM_DIR)/vsrc
+	-rm $(GEN_DIR)/*
+
 .PHONY: test verilog help reformat checkformat clean sim
 
-sim:
-	$(call git_commit, "sim RTL")
-	@echo "Write this Makefile by yourself."
 
 -include ../Makefile

@@ -15,7 +15,7 @@ object futurecore extends SbtModule {
   def scalacPluginIvyDeps = Agg(ivy"com.github.spinalhdl::spinalhdl-idsl-plugin:$spinalVersion")
   object test extends SbtTests with TestModule.ScalaTest {
     def sources = T.sources(
-      this.millSourcePath / "test" / "spinal"
+      this.millSourcePath / "sim" / "spinal"
     )
     def ivyDeps = Agg(
       ivy"org.scalatest::scalatest:3.2.14"
