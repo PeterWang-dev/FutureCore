@@ -64,7 +64,7 @@ void init_mem(const char *img_path) {
 }
 
 int pmem_read(int raddr) {
-  uint32_t addr = raddr & ~0x3u;
+  uint32_t addr = raddr;
   IFDEF(CONFIG_MTRACE,
         log_write("[mtrace] read %d bytes in " FMT_PADDR "\n", 32, addr));
 
@@ -84,7 +84,7 @@ int pmem_read(int raddr) {
 }
 
 void pmem_write(int waddr, int wdata, char wmask) {
-  uint32_t addr = waddr & ~0x3u;
+  uint32_t addr = waddr;
   IFDEF(CONFIG_MTRACE, log_write("[mtrace] write %d bytes in " FMT_PADDR
                                  " with " FMT_WORD "\n",
                                  len, addr, data));

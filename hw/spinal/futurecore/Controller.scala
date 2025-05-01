@@ -69,13 +69,24 @@ case class Controller() extends Component {
   switch(optCode) {
     is(InstTypePat.ArithLogic) {
       // Arithmetic and Logic instructions
-      val aluOpCode = funct7(5) ## funct3(2 downto 0)
-      ctrlSignals.aluOpType.assignFromBits(aluOpCode)
       ctrlSignals.regWrEn := True
-      when(optCode(5) === False) {
+      when(optCode(5) === True) {
+        // R-type
+        val aluOpCodeR = funct7(5) ## funct3(2 downto 0)
+        ctrlSignals.aluOpType.assignFromBits(aluOpCodeR)
+      } otherwise {
         // IType
         ctrlSignals.immType := ImmType.I
         ctrlSignals.immSel := True
+        when(funct3 === M"-01") {
+          // shift instructions with 5-bit immediate has funct7
+          val shiftOpCodeI = funct7(5) ## funct3(2 downto 0)
+          ctrlSignals.aluOpType.assignFromBits(shiftOpCodeI)
+        } otherwise {
+          // arithmetic instructions with 12-bit immediate does not have funct7
+          val arithOpCodeI = U"1'b0" ## funct3(2 downto 0)
+          ctrlSignals.aluOpType.assignFromBits(arithOpCodeI)
+        }
       }
     }
     is(InstTypePat.Load) {
@@ -84,7 +95,7 @@ case class Controller() extends Component {
       ctrlSignals.immType := ImmType.I
       ctrlSignals.immSel := True
       ctrlSignals.memValid := True
-      ctrlSignals.dataSextEn := funct3(2) === True // Sign extension
+      ctrlSignals.dataSextEn := funct3(2) =/= True // Sign extension
       val accessTypeCode = funct3(1 downto 0)
       ctrlSignals.accessType.assignFromBits(accessTypeCode)
       ctrlSignals.wbType := WriteBackType.Mem
@@ -105,7 +116,7 @@ case class Controller() extends Component {
       switch(funct3) {
         is(M"00-") { ctrlSignals.aluOpType := AluOp.EQ }
         is(M"10-") { ctrlSignals.aluOpType := AluOp.SLT }
-        is(M"01-") { ctrlSignals.aluOpType := AluOp.SLTU }
+        is(M"11-") { ctrlSignals.aluOpType := AluOp.SLTU }
       }
       when(funct3(0) === True) {
         ctrlSignals.dataSextEn := funct3(2) === True // Sign extension

@@ -43,6 +43,8 @@ case class MemoryAccessUnit() extends Component {
     }
   }
 
+  io.memRe := dataReaded
+
   mem.io.wen := False
   mem.io.wmask := B"8'b0"
   mem.io.waddr := U"32'b0"
@@ -64,6 +66,4 @@ case class MemoryAccessUnit() extends Component {
       }
     }
   }
-
-  io.memRe := Mux(io.memWrEn, B"32'b0", dataReaded)
 }
