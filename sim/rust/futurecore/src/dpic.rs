@@ -1,5 +1,5 @@
-use std::sync::OnceLock;
 use crate::mem::{MEM_SIZE, PMEM};
+use std::sync::RwLock;
 
 const GUEST_BASE: u32 = 0x80000000;
 
@@ -39,11 +39,20 @@ pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
         .write(addr, data);
 }
 
-pub static EBREAK_RETRUN: OnceLock<u32> = OnceLock::new();
+pub static IS_EBREAK: RwLock<bool> = RwLock::new(false);
+pub static EBREAK_RETRUN: RwLock<u32> = RwLock::new(u32::MAX);
 
 #[unsafe(no_mangle)]
 pub extern "C" fn ebreak(status: u32) {
-    EBREAK_RETRUN
-        .set(status)
-        .expect("Error: ebreak called multiple times");
+    //! WARNING: ebreak called multiple times from verilated dpi-c, OnceLock will panic.
+    //!          Need to determine the reason. Use RwLock for short term fix.
+    // EBREAK_RETRUN
+    //     .set(status)
+    //     .expect("Error: ebreak called multiple times");
+    *IS_EBREAK
+        .write()
+        .expect("Error: Can not acquire write lock of IS_EBREAK") = true;
+    *EBREAK_RETRUN
+        .write()
+        .expect("Error: Can not acquire write lock of EBREAK_RETRUN") = status;
 }

@@ -1,6 +1,6 @@
 use clap::Parser;
 use futurecore::{
-    EBREAK_RETRUN,
+    EBREAK_RETRUN, IS_EBREAK,
     mem::{Memory, init_pmem},
     verilated::VerilatedRuntime,
 };
@@ -42,13 +42,21 @@ fn main() -> ExitCode {
 
     runtime.reset(10);
     loop {
-        if EBREAK_RETRUN.get().is_some() {
+        if *IS_EBREAK
+            .read()
+            .expect("Error: Can not acquire read lock of IS_EBREAK")
+        {
             break;
         }
+
         runtime.step(1);
     }
 
-    if *EBREAK_RETRUN.get().unwrap() != 0 {
+    if *EBREAK_RETRUN
+        .read()
+        .expect("Error: Can not acquire read lock of EBREAK_RETRUN")
+        != 0
+    {
         return ExitCode::FAILURE;
     }
 
