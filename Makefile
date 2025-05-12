@@ -1,20 +1,18 @@
 PRJ = futurecore
 
 GEN_DIR = $(abspath hw/gen)
-SIM_DIR = $(abspath sim/verilator)
+SIM_DIR = $(abspath sim/rust)
 ARGS ?=
 IMG ?=
-
-sim:
-	$(call git_commit, "sim RTL")
-	make -C $(SIM_DIR) run ARGS="$(ARGS)" IMG=$(IMG)
 
 verilog:
 	$(call git_commit, "generate verilog")
 	mkdir -p $(GEN_DIR)
 	TARGET_DIR=$(GEN_DIR) mill -i $(PRJ).runMain $(PRJ).Elaborate
-	-rm $(SIM_DIR)/vsrc
-	ln -s $(GEN_DIR) $(SIM_DIR)/vsrc
+
+sim:
+	$(call git_commit, "sim RTL")
+	make -C $(SIM_DIR) run ARGS="$(ARGS)" IMG=$(IMG)
 
 test:
 	$(call git_commit, "test RTL")
@@ -40,13 +38,16 @@ idea:
 	mill -i mill.idea.GenIdea/idea
 
 clean:
-	-rm -rf $(BUILD_DIR)
-
-clean-verilog:
-	-rm $(SIM_DIR)/vsrc
+	@make -C $(SIM_DIR) clean
 	-rm $(GEN_DIR)/*
 
-.PHONY: test verilog help reformat checkformat clean sim
+clean-verilog:
+	-rm $(GEN_DIR)/*
 
+clean-all: clean
+	@make -C $(SIM_DIR) clean-all
+	-rm -r out simWorkspace .bsp .bloop .metals .idea
+
+.PHONY: sim test verilog help reformat checkformat clean clean-verilog clean-all
 
 -include ../Makefile
