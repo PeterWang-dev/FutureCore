@@ -54,11 +54,21 @@ let
   #     ]
   #   ))
   # ];
+  fenix = pkgs.callPackage (pkgs.fetchFromGitHub {
+    owner = "nix-community";
+    repo = "fenix";
+    rev = "main";
+    hash = "sha256-oLrH70QIWB/KpaI+nztyP1hG4zAEEpMiNk6sA8QLQ/8=";
+  }) { };
+  rustToolchain = [
+    fenix.stable.toolchain
+    pkgs.pkg-config
+  ];
 in
 pkgs.mkShell {
   inputsFrom = inputsFrom ++ [ thisPackage ];
   # packages = packages ++ toolPackages ++ teroshdlDeps;
-  packages = packages ++ toolPackages;
+  packages = packages ++ toolPackages ++ rustToolchain;
   shellHook = lib.strings.concatLines [
     ''echo "This is NPC." | lolcat''
     shellHook
