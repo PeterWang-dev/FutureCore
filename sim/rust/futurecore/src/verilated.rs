@@ -116,6 +116,7 @@ impl VerilatedRuntime {
         }
     }
 
+    #[deprecated = "Use `EBREAK_RETRUN` to check if the simulation is finished"]
     pub fn is_finished(&self) -> bool {
         self.contextp.gotFinish()
     }
