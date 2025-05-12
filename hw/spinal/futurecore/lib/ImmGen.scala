@@ -3,14 +3,18 @@ package futurecore.lib
 import spinal.core._
 import futurecore.Config
 
-object ImmType extends SpinalEnum {
-  val I, S, B, U, J = newElement()
+object ImmGen {
+  object ImmType extends SpinalEnum {
+    val I, S, B, U, J = newElement()
+  }
 }
 
 case class ImmGen() extends Component {
+  import ImmGen.ImmType
+
   val io = new Bundle {
     val inst = in Bits (32 bits)
-    val immType = in(ImmType())
+    val immType = in(ImmGen.ImmType())
     val imm = out SInt (32 bits)
   }
 
@@ -34,9 +38,4 @@ case class ImmGen() extends Component {
         .resize(32 bits)
     }
   }
-
-}
-
-object ImmGen extends App {
-  Config.spinal.generateVerilog(ImmGen())
 }

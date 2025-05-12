@@ -3,25 +3,29 @@ package futurecore.lib
 import spinal.core._
 import spinal.lib.CountOne
 
-object AluOp extends SpinalEnum {
-  val ADD, SLL, SLT, SLTU, XOR, SRL, OR, AND, SUB, EQ, SRA = newElement()
-  defaultEncoding = SpinalEnumEncoding("RISC-V ALU")(
-    // func7(5) ## func3(2,0)
-    ADD -> 0x0,
-    SUB -> 0x8,
-    SLL -> 0x1,
-    SLT -> 0x2,
-    SLTU -> 0x3,
-    XOR -> 0x4,
-    SRL -> 0x5,
-    SRA -> 0xd,
-    OR -> 0x6,
-    AND -> 0x7,
-    EQ -> 0x9
-  )
+object Alu {
+  object AluOp extends SpinalEnum {
+    val ADD, SLL, SLT, SLTU, XOR, SRL, OR, AND, SUB, EQ, SRA = newElement()
+    defaultEncoding = SpinalEnumEncoding("RISC-V ALU")(
+      // func7(5) ## func3(2,0)
+      ADD -> 0x0,
+      SUB -> 0x8,
+      SLL -> 0x1,
+      SLT -> 0x2,
+      SLTU -> 0x3,
+      XOR -> 0x4,
+      SRL -> 0x5,
+      SRA -> 0xd,
+      OR -> 0x6,
+      AND -> 0x7,
+      EQ -> 0x9
+    )
+  }
 }
 
 case class Alu(dataWidth: Int = 32) extends Component {
+  import Alu.AluOp
+
   val io = new Bundle {
     val inA = in Bits (dataWidth bits)
     val inB = in Bits (dataWidth bits)

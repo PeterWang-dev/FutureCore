@@ -10,11 +10,11 @@ case class FutureCore() extends Component {
   }
   noIoPrefix()
 
-  val ifu = InstFetchUnit()
-  val idu = InstDecodeUnit()
-  val exu = ExecuteUnit()
-  val mem = MemoryAccessUnit()
-  val wbu = WriteBackUnit()
+  val ifu = IFU()
+  val idu = IDU()
+  val exu = EXU()
+  val mem = MAU()
+  val wbu = WBU()
   val ctrl = Controller()
 
   val pc = ifu.pcGen.pcReg.pull()
@@ -22,39 +22,31 @@ case class FutureCore() extends Component {
   io.pc := pc
   io.ret := ret.asUInt
 
-  ctrl.io.inst := ifu.io.inst
-  ctrl.io.aluRes := exu.io.aluRes
+  ctrl.io.inst := ifu.io.output.inst
+  ctrl.io.aluRes := exu.io.output.aluRes
 
-  ifu.io.offsetRel := idu.io.imm
-  ifu.io.targetAbs := exu.io.aluRes.asUInt
-  ifu.io.pcAbsSel := ctrl.io.ctrl.pcAbsSel
-  ifu.io.pcRelSel := ctrl.io.ctrl.pcRelSel
+  ifu.io.input.offsetRel := idu.io.output.imm
+  ifu.io.input.targetAbs := exu.io.output.aluRes.asUInt
+  ifu.io.ctrl <> ctrl.io.ctrl.ifu
 
-  idu.io.inst := ifu.io.inst
-  idu.io.regWrEn := ctrl.io.ctrl.regWrEn
-  idu.io.regWrData := wbu.io.wbRes
-  idu.io.immType := ctrl.io.ctrl.immType
+  idu.io.input.inst := ifu.io.output.inst
+  idu.io.input.regWrData := wbu.io.output.wbRes
+  idu.io.ctrl <> ctrl.io.ctrl.idu
 
-  exu.io.pc := ifu.io.pcCurr
-  exu.io.rs1 := idu.io.regSrc1
-  exu.io.rs2 := idu.io.regSrc2
-  exu.io.imm := idu.io.imm
-  exu.io.pcSel := ctrl.io.ctrl.pcSel
-  exu.io.zeroSel := ctrl.io.ctrl.zeroSel
-  exu.io.immSel := ctrl.io.ctrl.immSel
-  exu.io.aluOpType := ctrl.io.ctrl.aluOpType
+  exu.io.input.pc := ifu.io.output.pcCurr
+  exu.io.input.rs1 := idu.io.output.regSrc1
+  exu.io.input.rs2 := idu.io.output.regSrc2
+  exu.io.input.imm := idu.io.output.imm
+  exu.io.ctrl <> ctrl.io.ctrl.exu
 
-  mem.io.memAddr := exu.io.aluRes.asUInt
-  mem.io.memValid := ctrl.io.ctrl.memValid
-  mem.io.memWrEn := ctrl.io.ctrl.memWrEn
-  mem.io.memWr := idu.io.regSrc2
-  mem.io.dataSextEn := ctrl.io.ctrl.dataSextEn
-  mem.io.accessType := ctrl.io.ctrl.accessType
+  mem.io.input.memAddr := exu.io.output.aluRes.asUInt
+  mem.io.input.memWr := idu.io.output.regSrc2
+  mem.io.ctrl <> ctrl.io.ctrl.mau
 
-  wbu.io.aluRes := exu.io.aluRes
-  wbu.io.memRes := mem.io.memRe
-  wbu.io.pcLink := ifu.io.pcNeigh
-  wbu.io.wbType := ctrl.io.ctrl.wbType
+  wbu.io.input.aluRes := exu.io.output.aluRes
+  wbu.io.input.memRes := mem.io.output.memRe
+  wbu.io.input.pcLink := ifu.io.output.pcNeigh
+  wbu.io.ctrl <> ctrl.io.ctrl.wbu
 }
 
 object Elaborate extends App {

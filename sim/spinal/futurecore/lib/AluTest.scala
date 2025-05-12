@@ -7,6 +7,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core.log2Up
 
 class AluTest extends AnyFlatSpec {
+  import Alu.AluOp
   object Util {
     def generateTestCases(n: Int, width: Int, hasNegative: Boolean = true): Seq[(Int, Int)] = {
       val random = new Random()

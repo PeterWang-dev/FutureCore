@@ -1,9 +1,10 @@
 package futurecore
 
-import futurecore.{AccessWidth, WriteBackType}
-import futurecore.lib.{AluOp, ImmType}
+import futurecore.lib.{Alu, ImmGen}
 import futurecore.blackbox.csr_dpi
+
 import spinal.core._
+import spinal.lib.master
 
 object InstTypePat {
   def ArithLogic = M"0-10011"
@@ -16,31 +17,23 @@ object InstTypePat {
 }
 
 case class ControllSignals() extends Bundle {
-  // InstFetchUnit
-  val pcAbsSel = Bool()
-  val pcRelSel = Bool()
-  // InstDecodeUnit
-  val regWrEn = Bool()
-  val immType = ImmType()
-  // ExecuteUnit
-  val pcSel = Bool()
-  val zeroSel = Bool()
-  val immSel = Bool()
-  val aluOpType = AluOp()
-  // MemoryAccessUnit
-  val memValid = Bool()
-  val memWrEn = Bool()
-  val dataSextEn = Bool()
-  val accessType = AccessWidth()
-  // WriteBackUnit
-  val wbType = WriteBackType()
+  val ifu = master(IFU.Ctrl())
+  val idu = master(IDU.Ctrl())
+  val exu = master(EXU.Ctrl())
+  val mau = master(MAU.Ctrl())
+  val wbu = master(WBU.Ctrl())
 }
 
 case class Controller() extends Component {
+  import ImmGen.ImmType
+  import Alu.AluOp
+  import MAU.AccessWidth
+  import WBU.WriteBackType
+
   val io = new Bundle {
     val inst = in Bits (32 bits)
     val aluRes = in Bits (32 bits)
-    val ctrl = out(ControllSignals())
+    val ctrl = ControllSignals()
   }
 
   val optCode = io.inst(6 downto 0)
@@ -52,109 +45,109 @@ case class Controller() extends Component {
   csr_dpi.io.valid := False
 
   // Default signals
-  ctrlSignals.pcAbsSel := False
-  ctrlSignals.pcRelSel := False
-  ctrlSignals.regWrEn := False
-  ctrlSignals.immType := ImmType.I // Default to I-type
-  ctrlSignals.pcSel := False
-  ctrlSignals.zeroSel := False
-  ctrlSignals.immSel := False
-  ctrlSignals.aluOpType := AluOp.ADD // Default to ADD operation
-  ctrlSignals.memValid := False
-  ctrlSignals.memWrEn := False
-  ctrlSignals.dataSextEn := False // Default to no sign extension to data from memory
-  ctrlSignals.accessType := AccessWidth.Word // Default to word access
-  ctrlSignals.wbType := WriteBackType.Alu // Default to ALU result for write back
+  ctrlSignals.ifu.pcAbsSel := False
+  ctrlSignals.ifu.pcRelSel := False
+  ctrlSignals.idu.regWrEn := False
+  ctrlSignals.idu.immType := ImmType.I // Default to I-type
+  ctrlSignals.exu.pcSel := False
+  ctrlSignals.exu.zeroSel := False
+  ctrlSignals.exu.immSel := False
+  ctrlSignals.exu.aluOpType := AluOp.ADD // Default to ADD operation
+  ctrlSignals.mau.memValid := False
+  ctrlSignals.mau.memWrEn := False
+  ctrlSignals.mau.dataSextEn := False // Default to no sign extension to data from memory
+  ctrlSignals.mau.accessType := AccessWidth.Word // Default to word access
+  ctrlSignals.wbu.wbType := WriteBackType.Alu // Default to ALU result for write back
 
   switch(optCode) {
     is(InstTypePat.ArithLogic) {
       // Arithmetic and Logic instructions
-      ctrlSignals.regWrEn := True
+      ctrlSignals.idu.regWrEn := True
       when(optCode(5) === True) {
         // R-type
         val aluOpCodeR = funct7(5) ## funct3(2 downto 0)
-        ctrlSignals.aluOpType.assignFromBits(aluOpCodeR)
+        ctrlSignals.exu.aluOpType.assignFromBits(aluOpCodeR)
       } otherwise {
         // IType
-        ctrlSignals.immType := ImmType.I
-        ctrlSignals.immSel := True
+        ctrlSignals.idu.immType := ImmType.I
+        ctrlSignals.exu.immSel := True
         when(funct3 === M"-01") {
           // shift instructions with 5-bit immediate has funct7
           val shiftOpCodeI = funct7(5) ## funct3(2 downto 0)
-          ctrlSignals.aluOpType.assignFromBits(shiftOpCodeI)
+          ctrlSignals.exu.aluOpType.assignFromBits(shiftOpCodeI)
         } otherwise {
           // arithmetic instructions with 12-bit immediate does not have funct7
           val arithOpCodeI = U"1'b0" ## funct3(2 downto 0)
-          ctrlSignals.aluOpType.assignFromBits(arithOpCodeI)
+          ctrlSignals.exu.aluOpType.assignFromBits(arithOpCodeI)
         }
       }
     }
     is(InstTypePat.Load) {
       // Load instructions
-      ctrlSignals.regWrEn := True
-      ctrlSignals.immType := ImmType.I
-      ctrlSignals.immSel := True
-      ctrlSignals.memValid := True
-      ctrlSignals.dataSextEn := funct3(2) =/= True // Sign extension
+      ctrlSignals.idu.regWrEn := True
+      ctrlSignals.idu.immType := ImmType.I
+      ctrlSignals.exu.immSel := True
+      ctrlSignals.mau.memValid := True
+      ctrlSignals.mau.dataSextEn := funct3(2) =/= True // Sign extension
       val accessTypeCode = funct3(1 downto 0)
-      ctrlSignals.accessType.assignFromBits(accessTypeCode)
-      ctrlSignals.wbType := WriteBackType.Mem
+      ctrlSignals.mau.accessType.assignFromBits(accessTypeCode)
+      ctrlSignals.wbu.wbType := WriteBackType.Mem
     }
     is(InstTypePat.Store) {
       // Store instructions
-      ctrlSignals.immType := ImmType.S
-      ctrlSignals.immSel := True
-      ctrlSignals.memValid := True
-      ctrlSignals.memWrEn := True
+      ctrlSignals.idu.immType := ImmType.S
+      ctrlSignals.exu.immSel := True
+      ctrlSignals.mau.memValid := True
+      ctrlSignals.mau.memWrEn := True
       val accessTypeCode = funct3(1 downto 0)
-      ctrlSignals.accessType.assignFromBits(accessTypeCode)
+      ctrlSignals.mau.accessType.assignFromBits(accessTypeCode)
     }
     is(InstTypePat.Branch) {
       // Branch instructions
-      ctrlSignals.pcAbsSel := False
-      ctrlSignals.immType := ImmType.B
+      ctrlSignals.ifu.pcAbsSel := False
+      ctrlSignals.idu.immType := ImmType.B
       switch(funct3) {
-        is(M"00-") { ctrlSignals.aluOpType := AluOp.EQ }
-        is(M"10-") { ctrlSignals.aluOpType := AluOp.SLT }
-        is(M"11-") { ctrlSignals.aluOpType := AluOp.SLTU }
+        is(M"00-") { ctrlSignals.exu.aluOpType := AluOp.EQ }
+        is(M"10-") { ctrlSignals.exu.aluOpType := AluOp.SLT }
+        is(M"11-") { ctrlSignals.exu.aluOpType := AluOp.SLTU }
       }
       when(funct3(0) === True) {
-        ctrlSignals.dataSextEn := funct3(2) === True // Sign extension
+        ctrlSignals.mau.dataSextEn := funct3(2) === True // Sign extension
         // bne, bge, bgeu
-        ctrlSignals.pcRelSel := True & ~io.aluRes.lsb
+        ctrlSignals.ifu.pcRelSel := True & ~io.aluRes.lsb
       } otherwise {
         // beq, blt, bltu
-        ctrlSignals.pcRelSel := True & io.aluRes.lsb
+        ctrlSignals.ifu.pcRelSel := True & io.aluRes.lsb
       }
     }
     is(InstTypePat.JumpLink) {
       // Jump and Link instructions
-      ctrlSignals.pcAbsSel := True
-      ctrlSignals.regWrEn := True
-      ctrlSignals.wbType := WriteBackType.Pc
-      ctrlSignals.immSel := True
+      ctrlSignals.ifu.pcAbsSel := True
+      ctrlSignals.idu.regWrEn := True
+      ctrlSignals.wbu.wbType := WriteBackType.Pc
+      ctrlSignals.exu.immSel := True
       when(optCode(3) === True) {
         // jal
-        ctrlSignals.pcSel := True
-        ctrlSignals.immType := ImmType.J
+        ctrlSignals.exu.pcSel := True
+        ctrlSignals.idu.immType := ImmType.J
 
       } otherwise {
         // jalr
-        ctrlSignals.immType := ImmType.I
+        ctrlSignals.idu.immType := ImmType.I
       }
     }
     is(InstTypePat.Upper) {
       // Upper immediate instructions
-      ctrlSignals.regWrEn := True
-      ctrlSignals.immType := ImmType.U
-      ctrlSignals.immSel := True
+      ctrlSignals.idu.regWrEn := True
+      ctrlSignals.idu.immType := ImmType.U
+      ctrlSignals.exu.immSel := True
 
       when(optCode(5) === False) {
         // auipc
-        ctrlSignals.pcSel := True
+        ctrlSignals.exu.pcSel := True
       } otherwise {
         // lui
-        ctrlSignals.zeroSel := True
+        ctrlSignals.exu.zeroSel := True
       }
     }
     is(InstTypePat.CSR) {

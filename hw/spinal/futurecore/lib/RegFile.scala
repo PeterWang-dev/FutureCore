@@ -2,7 +2,7 @@ package futurecore.lib
 
 import spinal.core._
 
-case class RegisterFile(rv32e: Boolean = true) extends Component {
+case class RegFile(rv32e: Boolean = true) extends Component {
   val io = new Bundle {
     val writeEn = in Bool ()
     val addrWr = in UInt (5 bits)
