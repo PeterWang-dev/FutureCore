@@ -25,16 +25,18 @@ impl Memory {
         Memory::default()
     }
 
-    pub fn with_image(image: &[u32]) -> Self {
+    pub fn with_image(image: &[u8]) -> Self {
         let mut memory = Memory::new();
-        for (i, &word) in image.iter().enumerate() {
-            memory.inner[i * 4..(i + 1) * 4].copy_from_slice(&word.to_le_bytes());
+        let image_len = image.len();
+        if image_len > MEM_SIZE {
+            panic!("Image size exceeds memory size");
         }
+        memory.inner[0..image_len].copy_from_slice(image);
         memory
     }
 
     pub fn new_with_default() -> Self {
-        Self::with_image(&DEFAULT_IMAGE)
+        Self::with_image(&DEFAULT_IMAGE.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>())
     }
 
     pub fn read(&self, addr: u32) -> u32 {
