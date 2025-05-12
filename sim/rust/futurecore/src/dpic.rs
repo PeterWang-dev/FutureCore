@@ -1,3 +1,4 @@
+use std::sync::OnceLock;
 use crate::mem::{MEM_SIZE, PMEM};
 
 const GUEST_BASE: u32 = 0x80000000;
@@ -26,9 +27,9 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
 pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
     let addr = guest_to_host(waddr);
     let data = match wmask {
-        0x01 => wdata & 0x0000ff,
-        0x03 => wdata & 0x00ffff,
-        0x0f => wdata & 0xffffff,
+        0x01 => wdata & 0x000000ff,
+        0x03 => wdata & 0x0000ffff,
+        0x0f => wdata & 0xffffffff,
         _ => panic!("Invalid write mask: {:#x}", wmask),
     };
     PMEM.get()
@@ -38,8 +39,11 @@ pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
         .write(addr, data);
 }
 
+pub static EBREAK_RETRUN: OnceLock<u32> = OnceLock::new();
+
 #[unsafe(no_mangle)]
-pub extern "C" fn ebreak() {
-    println!("ebreak");
-    std::process::exit(0);
+pub extern "C" fn ebreak(status: u32) {
+    EBREAK_RETRUN
+        .set(status)
+        .expect("Error: ebreak called multiple times");
 }
