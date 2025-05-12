@@ -6,7 +6,6 @@ import spinal.core._
 case class FutureCore() extends Component {
   val io = new Bundle {
     val pc = out UInt (32 bits)
-    val ret = out UInt (32 bits)
   }
   noIoPrefix()
 
@@ -18,9 +17,7 @@ case class FutureCore() extends Component {
   val ctrl = Controller()
 
   val pc = ifu.pcGen.pcReg.pull()
-  val ret = idu.regFile.ret.pull()
   io.pc := pc
-  io.ret := ret.asUInt
 
   ctrl.io.inst := ifu.io.output.inst
   ctrl.io.aluRes := exu.io.output.aluRes
@@ -46,6 +43,7 @@ case class FutureCore() extends Component {
   wbu.io.input.aluRes := exu.io.output.aluRes
   wbu.io.input.memRes := mem.io.output.memRe
   wbu.io.input.pcLink := ifu.io.output.pcNeigh
+  wbu.io.input.retStatus := idu.regFile.ret.pull()
   wbu.io.ctrl <> ctrl.io.ctrl.wbu
 }
 

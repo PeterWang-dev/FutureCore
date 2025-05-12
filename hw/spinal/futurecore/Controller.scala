@@ -1,8 +1,6 @@
 package futurecore
 
 import futurecore.lib.{Alu, ImmGen}
-import futurecore.blackbox.csr_dpi
-
 import spinal.core._
 import spinal.lib.master
 
@@ -40,9 +38,6 @@ case class Controller() extends Component {
   val funct3 = io.inst(14 downto 12)
   val funct7 = io.inst(31 downto 25)
   val ctrlSignals = ControllSignals()
-
-  val csr_dpi = new csr_dpi;
-  csr_dpi.io.valid := False
 
   // Default signals
   ctrlSignals.ifu.pcAbsSel := False
@@ -151,7 +146,10 @@ case class Controller() extends Component {
       }
     }
     is(InstTypePat.CSR) {
-      csr_dpi.io.valid := io.inst(20) === True
+      when(io.inst(20) === True){
+        // ebreak
+        ctrlSignals.wbu.wbType := WriteBackType.Ebreak
+      }
     }
   }
 

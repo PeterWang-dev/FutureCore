@@ -2,10 +2,11 @@ package futurecore.blackbox
 
 import spinal.core._
 
-class csr_dpi extends BlackBox {
+class ebreak_dpi extends BlackBox {
   val io = new Bundle {
     val valid = in Bool ()
+    val status = out Bits (32 bits)
   }
   noIoPrefix()
-  addRTLPath("hw/verilog/csr_dpi.sv")
+  addRTLPath("hw/verilog/ebreak_dpi.sv")
 }
