@@ -5,17 +5,17 @@
 extern VerilatedRuntime *runtime;
 
 struct EbreakStatus {
-  uint32_t thispc;
-  uint32_t code;
+  // uint32_t thispc;
+  int code;
 };
 
-EbreakStatus status;
+EbreakStatus ebreak_status;
 
-void ebreak() {
+void ebreak(int status) {
   TOP_NAME &dutp = runtime->dut();
   runtime->set_finish();
-  status.thispc = dutp.pc;
-  status.code = dutp.ret;
+  // status.thispc = dutp.pc;
+  ebreak_status.code = status;
 }
 
-int get_status() { return status.code; }
+int get_status() { return ebreak_status.code; }

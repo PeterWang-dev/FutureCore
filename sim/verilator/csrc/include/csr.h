@@ -4,7 +4,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-void ebreak();
+void ebreak(int status);
 #ifdef __cplusplus
 }
 #endif

@@ -3,7 +3,7 @@
 #include "runtime.h"
 #include <cstdio>
 
-#define MAX_SIM_CYCLES 10000
+#define MAX_SIM_CYCLES 0xffffffff
 
 VerilatedRuntime *runtime = nullptr;
 
