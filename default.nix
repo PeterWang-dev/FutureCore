@@ -6,7 +6,7 @@
   python3,
   yosys,
   zlib,
-  SDL2,
+  SDL2_classic,
   SDL2_ttf,
   SDL2_image,
 }:
@@ -20,8 +20,5 @@ stdenv.mkDerivation {
     python3
     yosys
     zlib
-    SDL2
-    SDL2_ttf
-    SDL2_image
   ];
 }
