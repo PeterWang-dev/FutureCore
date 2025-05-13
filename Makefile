@@ -1,6 +1,18 @@
-BUILD_DIR = hw/gen
+PRJ = futurecore
 
-PRJ = projectname
+GEN_DIR = $(abspath hw/gen)
+SIM_DIR = $(abspath sim/rust)
+ARGS ?=
+IMG ?=
+
+verilog:
+	$(call git_commit, "generate verilog")
+	mkdir -p $(GEN_DIR)
+	TARGET_DIR=$(GEN_DIR) mill -i $(PRJ).runMain $(PRJ).Elaborate
+
+sim:
+	$(call git_commit, "sim RTL")
+	make -C $(SIM_DIR) run ARGS="$(ARGS)" IMG=$(IMG)
 
 test:
 	$(call git_commit, "test RTL")
@@ -9,11 +21,6 @@ test:
 formal:
 	$(call git_commit, "verify RTL")
 	mill -i $(PRJ).runMain $(PRJ).Verify
-
-verilog:
-	$(call git_commit, "generate verilog")
-	mkdir -p $(BUILD_DIR)
-	TARGET_DIR=$(BUILD_DIR) mill -i $(PRJ).runMain $(PRJ).Elaborate
 
 help:
 	mill -i $(PRJ).runMain Elaborate --help
@@ -31,12 +38,16 @@ idea:
 	mill -i mill.idea.GenIdea/idea
 
 clean:
-	-rm -rf $(BUILD_DIR)
+	@make -C $(SIM_DIR) clean
+	-rm $(GEN_DIR)/*
 
-.PHONY: test verilog help reformat checkformat clean sim
+clean-verilog:
+	-rm $(GEN_DIR)/*
 
-sim:
-	$(call git_commit, "sim RTL")
-	@echo "Write this Makefile by yourself."
+clean-all: clean
+	@make -C $(SIM_DIR) clean-all
+	-rm -r out simWorkspace .bsp .bloop .metals .idea
+
+.PHONY: sim test verilog help reformat checkformat clean clean-verilog clean-all
 
 -include ../Makefile
