@@ -56,11 +56,8 @@ impl Memory {
         let data_le_bytes = data.to_le_bytes();
         match mask {
             0x01 => self.inner[offset] = data_le_bytes[0],
-            0x03 => self.inner[offset as usize..offset as usize + 1]
-                .copy_from_slice(&data_le_bytes[0..1]),
-            0x0f => {
-                self.inner[offset as usize..offset as usize + 4].copy_from_slice(&data_le_bytes)
-            }
+            0x03 => self.inner[offset..offset + 2].copy_from_slice(&data_le_bytes[0..2]),
+            0x0f => self.inner[offset..offset + 4].copy_from_slice(&data_le_bytes),
             _ => panic!("Error: Invalid memory write mask: {:#x}", mask),
         }
     }
