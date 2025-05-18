@@ -49,7 +49,7 @@ impl Device for Timer {
 
     fn read(&self, addr: usize) -> u32 {
         assert!(addr >= ADDR && addr < ADDR + 8);
-        return self.read(addr);
+        return Timer::read(self, addr);
     }
 
     fn write(&mut self, _addr: usize, _data: u32, _mask: u8) {
