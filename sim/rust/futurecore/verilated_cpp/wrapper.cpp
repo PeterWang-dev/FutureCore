@@ -15,6 +15,11 @@ std::unique_ptr<VerilatedFstC> make_fst_c() {
   return tfp;
 }
 
+void trace(VFutureCore &dut, VerilatedFstC *trace, int32_t level,
+           int32_t options) {
+  dut.trace(trace, level, options);
+}
+
 uint8_t &resetn(VFutureCore &dut) { return dut.resetn; }
 
 uint8_t &clk(VFutureCore &dut) { return dut.clk; }
