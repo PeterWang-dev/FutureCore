@@ -20,10 +20,10 @@ object IFU {
   }
 
   case class Ctrl() extends Bundle with IMasterSlave {
-    val pcAbsSel = Bool()
     val pcRelSel = Bool()
+    val pcAbsSel = Bool()
     override def asMaster(): Unit = {
-      out(pcAbsSel, pcRelSel)
+      out(pcRelSel, pcAbsSel)
     }
   }
 }
