@@ -1,10 +1,11 @@
 use clap::Parser;
 use futurecore::{
     EBREAK_RETRUN, IS_EBREAK,
+    device::init_device,
     mem::{Memory, init_pmem},
     verilated::VerilatedRuntime,
 };
-use std::{ffi::OsString, path::Path, process::ExitCode};
+use std::{ffi::OsString, path::Path, process::ExitCode, sync::atomic::Ordering};
 
 /// Rust based Verilator simulation for the Future Core
 #[derive(Parser)]
@@ -17,19 +18,28 @@ struct Cli {
     image: Option<OsString>,
 }
 
-fn main() -> ExitCode {
-    let cli = Cli::parse();
-
-    if let Some(image_path) = cli.image {
+fn init(image_path: Option<OsString>) -> Result<(), ExitCode> {
+    if let Some(image_path) = image_path {
         let image_path = Path::new(&image_path);
         if !image_path.exists() {
             eprintln!("Error: Image file does not exist: {:?}", image_path);
-            return ExitCode::FAILURE;
+            return Err(ExitCode::FAILURE);
         }
         let image = std::fs::read(image_path).expect("Failed to read image file");
         init_pmem(Memory::with_image(&image));
     } else {
         init_pmem(Memory::new_with_default());
+    }
+
+    init_device();
+    Ok(())
+}
+
+fn main() -> ExitCode {
+    let cli = Cli::parse();
+
+    if let Err(err) = init(cli.image) {
+        return err;
     }
 
     let mut runtime = VerilatedRuntime::new();
@@ -42,21 +52,14 @@ fn main() -> ExitCode {
 
     runtime.reset(10);
     loop {
-        if *IS_EBREAK
-            .read()
-            .expect("Error: Can not acquire read lock of IS_EBREAK")
-        {
+        if IS_EBREAK.load(Ordering::SeqCst) {
             break;
         }
 
         runtime.step(1);
     }
 
-    if *EBREAK_RETRUN
-        .read()
-        .expect("Error: Can not acquire read lock of EBREAK_RETRUN")
-        != 0
-    {
+    if EBREAK_RETRUN.load(Ordering::SeqCst) != 0 {
         return ExitCode::FAILURE;
     }
 
