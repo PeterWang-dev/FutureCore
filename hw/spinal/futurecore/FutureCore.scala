@@ -19,8 +19,8 @@ case class FutureCore() extends Component {
   val pc = ifu.pcGen.pcReg.pull()
   io.pc := pc
 
-  ctrl.io.inst := ifu.io.output.inst
-  ctrl.io.aluRes := exu.io.output.aluRes
+  ctrl.io.input.inst := ifu.io.output.inst
+  ctrl.io.input.aluRes := exu.io.output.aluRes
 
   ifu.io.input.offsetRel := idu.io.output.imm
   ifu.io.input.targetAbs := exu.io.output.aluRes.asUInt
