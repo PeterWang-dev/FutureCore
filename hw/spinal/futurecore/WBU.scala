@@ -43,6 +43,7 @@ case class WBU() extends Component {
   val result = Bits(32 bits)
 
   ebreak.io.valid := io.ctrl.wbType === WriteBackType.Ebreak
+  ebreak.io.status := io.input.retStatus
 
   switch(io.ctrl.wbType) {
     is(WriteBackType.Alu) {
