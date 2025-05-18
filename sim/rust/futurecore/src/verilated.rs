@@ -29,7 +29,7 @@ mod ffi {
         #[cxx_name = "final"]
         fn final_(self: Pin<&mut VFutureCore>);
         unsafe fn trace(
-            self: Pin<&mut VFutureCore>,
+            dut: Pin<&mut VFutureCore>,
             tfp: *mut VerilatedFstC,
             levels: i32,
             options: i32,
@@ -84,7 +84,7 @@ impl VerilatedRuntime {
         let tfp = self.tfp.as_mut().unwrap();
         VerilatedContext::traceEverOn(self.contextp.pin_mut(), true);
         unsafe {
-            VFutureCore::trace(self.dutp.pin_mut(), tfp.as_mut_ptr(), 99, 0);
+            ffi::trace(self.dutp.pin_mut(), tfp.as_mut_ptr(), 99, 0);
             VerilatedFstC::open(tfp.pin_mut(), filepath.as_ptr());
         }
     }

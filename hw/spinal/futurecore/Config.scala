@@ -7,9 +7,10 @@ object Config {
   def spinal = SpinalConfig(
     targetDirectory = sys.env.getOrElse("TARGET_DIR", "hw/gen"),
     defaultConfigForClockDomains = ClockDomainConfig(
+      resetKind = SYNC,
       resetActiveLevel = LOW
     ),
-    oneFilePerComponent = true,
+    oneFilePerComponent = false,
     onlyStdLogicVectorAtTopLevelIo = false
   )
 

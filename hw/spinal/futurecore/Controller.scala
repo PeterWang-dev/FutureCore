@@ -14,6 +14,12 @@ object InstTypePat {
   def CSR = M"1110011"
 }
 
+case class In() extends Bundle {
+  val inst = Bits(32 bits)
+  val aluRes = Bits(32 bits)
+  in(inst, aluRes)
+}
+
 case class ControllSignals() extends Bundle {
   val ifu = master(IFU.Ctrl())
   val idu = master(IDU.Ctrl())
@@ -29,14 +35,13 @@ case class Controller() extends Component {
   import WBU.WriteBackType
 
   val io = new Bundle {
-    val inst = in Bits (32 bits)
-    val aluRes = in Bits (32 bits)
+    val input = In()
     val ctrl = ControllSignals()
   }
 
-  val optCode = io.inst(6 downto 0)
-  val funct3 = io.inst(14 downto 12)
-  val funct7 = io.inst(31 downto 25)
+  val optCode = io.input.inst(6 downto 0)
+  val funct3 = io.input.inst(14 downto 12)
+  val funct7 = io.input.inst(31 downto 25)
   val ctrlSignals = ControllSignals()
 
   // Default signals
@@ -63,7 +68,7 @@ case class Controller() extends Component {
         val aluOpCodeR = funct7(5) ## funct3(2 downto 0)
         ctrlSignals.exu.aluOpType.assignFromBits(aluOpCodeR)
       } otherwise {
-        // IType
+        // I-Type
         ctrlSignals.idu.immType := ImmType.I
         ctrlSignals.exu.immSel := True
         when(funct3 === M"-01") {
@@ -109,10 +114,10 @@ case class Controller() extends Component {
       when(funct3(0) === True) {
         ctrlSignals.mau.dataSextEn := funct3(2) === True // Sign extension
         // bne, bge, bgeu
-        ctrlSignals.ifu.pcRelSel := True & ~io.aluRes.lsb
+        ctrlSignals.ifu.pcRelSel := True === ~io.input.aluRes.lsb
       } otherwise {
         // beq, blt, bltu
-        ctrlSignals.ifu.pcRelSel := True & io.aluRes.lsb
+        ctrlSignals.ifu.pcRelSel := True === io.input.aluRes.lsb
       }
     }
     is(InstTypePat.JumpLink) {
@@ -146,7 +151,7 @@ case class Controller() extends Component {
       }
     }
     is(InstTypePat.CSR) {
-      when(io.inst(20) === True){
+      when(io.input.inst(20) === True) {
         // ebreak
         ctrlSignals.wbu.wbType := WriteBackType.Ebreak
       }

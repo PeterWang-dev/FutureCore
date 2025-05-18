@@ -4,17 +4,22 @@ import spinal.core._
 
 class rom_dpi extends BlackBox {
   val io = new Bundle {
+    val clk = in Bool ()
+    val resetn = in Bool ()
     val valid = in Bool ()
     val raddr = in UInt (32 bits)
     val rdata = out Bits (32 bits)
   }
 
   noIoPrefix()
+  mapClockDomain(clock = io.clk, reset = io.resetn, resetActiveLevel = LOW)
   addRTLPath("hw/verilog/mem_dpi.sv")
 }
 
 class ram_dpi extends BlackBox {
   val io = new Bundle {
+    val clk = in Bool ()
+    val resetn = in Bool ()
     val valid = in Bool ()
     val raddr = in UInt (32 bits)
     val rdata = out Bits (32 bits)
@@ -25,5 +30,6 @@ class ram_dpi extends BlackBox {
   }
 
   noIoPrefix()
+  mapClockDomain(clock = io.clk, reset = io.resetn, resetActiveLevel = LOW)
   addRTLPath("hw/verilog/mem_dpi.sv")
 }

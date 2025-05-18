@@ -36,10 +36,15 @@ impl Memory {
     }
 
     pub fn new_with_default() -> Self {
-        Self::with_image(&DEFAULT_IMAGE.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>())
+        Self::with_image(
+            &DEFAULT_IMAGE
+                .iter()
+                .flat_map(|&x| x.to_le_bytes())
+                .collect::<Vec<u8>>(),
+        )
     }
 
-    pub fn read(&self, addr: u32) -> u32 {
+    pub fn read(&self, addr: usize) -> u32 {
         u32::from_le_bytes(
             self.inner[addr as usize..addr as usize + 4]
                 .try_into()
@@ -47,8 +52,14 @@ impl Memory {
         )
     }
 
-    pub fn write(&mut self, addr: u32, data: u32) {
-        self.inner[addr as usize..addr as usize + 4].copy_from_slice(&data.to_le_bytes());
+    pub fn write(&mut self, offset: usize, data: u32, mask: u8) {
+        let data_le_bytes = data.to_le_bytes();
+        match mask {
+            0x01 => self.inner[offset] = data_le_bytes[0],
+            0x03 => self.inner[offset..offset + 2].copy_from_slice(&data_le_bytes[0..2]),
+            0x0f => self.inner[offset..offset + 4].copy_from_slice(&data_le_bytes),
+            _ => panic!("Error: Invalid memory write mask: {:#x}", mask),
+        }
     }
 }
 

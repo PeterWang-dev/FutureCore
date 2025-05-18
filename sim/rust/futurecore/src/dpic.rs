@@ -1,58 +1,52 @@
-use crate::mem::{MEM_SIZE, PMEM};
-use std::sync::RwLock;
+use crate::{
+    device::{DEVICE_RANGE, mmio_read, mmio_write},
+    mem::{MEM_SIZE, PMEM},
+};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 const GUEST_BASE: u32 = 0x80000000;
 
-fn guest_to_host(addr: u32) -> u32 {
-    let aligned = addr & !0x3u32;
-    if aligned < GUEST_BASE {
+fn guest_to_host(addr: u32) -> usize {
+    if addr < GUEST_BASE {
         panic!("Invalid address: {:#x}", addr);
-    } else if aligned >= GUEST_BASE + MEM_SIZE as u32 {
+    } else if addr >= GUEST_BASE + MEM_SIZE as u32 {
         panic!("Address out of bounds: {:#x}", addr);
     }
-    aligned - GUEST_BASE
+    (addr - GUEST_BASE) as usize
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_read(raddr: u32) -> u32 {
-    let addr = guest_to_host(raddr);
+    if DEVICE_RANGE.contains(&(raddr as usize)) {
+        return mmio_read(raddr as usize);
+    }
+    let offset = guest_to_host(raddr);
     PMEM.get()
         .expect("Memory not initialized")
         .read()
         .unwrap()
-        .read(addr)
+        .read(offset)
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
+    if DEVICE_RANGE.contains(&(waddr as usize)) {
+        mmio_write(waddr as usize, wdata, wmask);
+        return;
+    }
     let addr = guest_to_host(waddr);
-    let data = match wmask {
-        0x01 => wdata & 0x000000ff,
-        0x03 => wdata & 0x0000ffff,
-        0x0f => wdata & 0xffffffff,
-        _ => panic!("Invalid write mask: {:#x}", wmask),
-    };
     PMEM.get()
         .expect("Memory not initialized")
         .write()
         .unwrap()
-        .write(addr, data);
+        .write(addr, wdata, wmask);
 }
 
-pub static IS_EBREAK: RwLock<bool> = RwLock::new(false);
-pub static EBREAK_RETRUN: RwLock<u32> = RwLock::new(u32::MAX);
+pub static IS_EBREAK: AtomicBool = AtomicBool::new(false);
+pub static EBREAK_RETRUN: AtomicU32 = AtomicU32::new(u32::MAX);
 
 #[unsafe(no_mangle)]
 pub extern "C" fn ebreak(status: u32) {
-    //! WARNING: ebreak called multiple times from verilated dpi-c, OnceLock will panic.
-    //!          Need to determine the reason. Use RwLock for short term fix.
-    // EBREAK_RETRUN
-    //     .set(status)
-    //     .expect("Error: ebreak called multiple times");
-    *IS_EBREAK
-        .write()
-        .expect("Error: Can not acquire write lock of IS_EBREAK") = true;
-    *EBREAK_RETRUN
-        .write()
-        .expect("Error: Can not acquire write lock of EBREAK_RETRUN") = status;
+    IS_EBREAK.store(true, Ordering::SeqCst);
+    EBREAK_RETRUN.store(status, Ordering::SeqCst);
 }
