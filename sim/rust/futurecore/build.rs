@@ -18,6 +18,9 @@ fn main() {
         .include(&cmake_out_dir)
         .include(&cmake_out_dir.join("VFutureCore.dir"))
         .includes(verilator.include_paths)
+        .cpp(true)
+        .std("c++20")
+        .opt_level(3)
         .compile("verilated");
 
     println!("cargo:rustc-link-search=native={}", cmake_out_dir.display());
