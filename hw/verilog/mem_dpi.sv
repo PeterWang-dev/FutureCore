@@ -1,5 +1,5 @@
-import "DPI-C" context function int pmem_read(input int raddr);
-import "DPI-C" context function void pmem_write(
+import "DPI-C" function int pmem_read(input int raddr);
+import "DPI-C" function void pmem_write(
   input int  waddr,
   input int  wdata,
   input byte wmask
@@ -14,7 +14,7 @@ module ram_dpi (
     input wire [31:0] waddr,
     input wire [31:0] wdata,
     input wire [7:0] wmask,
-    output logic [31:0] rdata
+    output wire [31:0] rdata
 );
 
   always_ff @(posedge clk) begin
@@ -34,7 +34,7 @@ module rom_dpi (
     input wire resetn,
     input wire valid,
     input wire [31:0] raddr,
-    output logic [31:0] rdata
+    output wire [31:0] rdata
 );
 
   assign rdata = resetn & valid ? pmem_read(raddr) : 0;
