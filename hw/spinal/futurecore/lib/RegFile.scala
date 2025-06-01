@@ -1,5 +1,6 @@
 package futurecore.lib
 
+import futurecore.blackbox.{reg16_dpi, reg32_dpi}
 import spinal.core._
 
 case class RegFile(rv32e: Boolean = true) extends Component {
@@ -15,6 +16,18 @@ case class RegFile(rv32e: Boolean = true) extends Component {
 
   val regFile = Mem(Bits(32 bits), if (rv32e) 16 else 32)
   regFile.setTechnology(registerFile)
+
+  if (rv32e) {
+    val regDpi = new reg16_dpi
+    for (i <- 0 until 16) {
+      regDpi.io.gprs(32 * (i + 1) - 1 downto 32 * i) := regFile(U(i).resized)
+    }
+  } else {
+    val regDpi = new reg32_dpi
+    for (i <- 0 until 32) {
+      regDpi.io.gprs(32 * (i + 1) - 1 downto 32 * i) := regFile(U(i).resized)
+    }
+  }
 
   val ret = regFile(U(10).resized)
 
