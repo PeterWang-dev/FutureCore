@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.5.38", features = ["derive"] }
 cxx = "1.0.158"
+gdbstub = "0.7.5"
+thiserror = "2.0.12"
 
 [build-dependencies]
 cmake = "0.1.54"

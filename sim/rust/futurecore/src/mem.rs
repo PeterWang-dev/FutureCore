@@ -1,19 +1,9 @@
-use std::{
-    sync::{OnceLock, RwLock},
-    vec,
+use crate::{
+    arch::rv32i::{RV32I_BASE_ADDR as GUEST_BASE, RV32I_DEFAULT_IMAGE as DEFAULT_IMAGE},
+    error::MemoryError,
 };
 
-pub static PMEM: OnceLock<RwLock<Memory>> = OnceLock::new();
-
-pub const MEM_SIZE: usize = 0x8000000;
-
-const DEFAULT_IMAGE: [u32; 5] = [
-    0x00000297, // auipc t0,0
-    0x00028823, // sb  zero,16(t0)
-    0x0102c503, // lbu a0,16(t0)
-    0x00100073, // ebreak (used as nemu_trap)
-    0xdeadbeef, // some data
-];
+const MEM_SIZE: usize = 0x8000000;
 
 #[derive(Debug)]
 pub struct Memory {
@@ -26,7 +16,7 @@ impl Memory {
     }
 
     pub fn with_image(image: &[u8]) -> Self {
-        let mut memory = Memory::new();
+        let mut memory = Memory::default();
         let image_len = image.len();
         if image_len > MEM_SIZE {
             panic!("Image size exceeds memory size");
@@ -35,7 +25,7 @@ impl Memory {
         memory
     }
 
-    pub fn new_with_default() -> Self {
+    pub fn with_default_image() -> Self {
         Self::with_image(
             &DEFAULT_IMAGE
                 .iter()
@@ -44,22 +34,33 @@ impl Memory {
         )
     }
 
-    pub fn read(&self, addr: usize) -> u32 {
-        u32::from_le_bytes(
-            self.inner[addr as usize..addr as usize + 4]
-                .try_into()
-                .expect("Failed to read memory"),
-        )
+    fn convert_addr(addr: u32) -> Result<usize, MemoryError> {
+        const MAX_ADDR: u32 = GUEST_BASE + MEM_SIZE as u32;
+        match addr {
+            0..GUEST_BASE | MAX_ADDR..=std::u32::MAX => Err(MemoryError::AddressOutOfBound(addr)),
+            GUEST_BASE..MAX_ADDR => Ok((addr - GUEST_BASE) as usize),
+        }
     }
 
-    pub fn write(&mut self, offset: usize, data: u32, mask: u8) {
+    pub fn read(&self, addr: u32) -> Result<u32, MemoryError> {
+        let offset = Self::convert_addr(addr)?;
+        Ok(u32::from_le_bytes(
+            self.inner[offset..offset + 4]
+                .try_into()
+                .expect("Failed to read memory"),
+        ))
+    }
+
+    pub fn write(&mut self, addr: u32, data: u32, mask: u8) -> Result<(), MemoryError> {
+        let offset = Self::convert_addr(addr)?;
         let data_le_bytes = data.to_le_bytes();
         match mask {
             0x01 => self.inner[offset] = data_le_bytes[0],
             0x03 => self.inner[offset..offset + 2].copy_from_slice(&data_le_bytes[0..2]),
             0x0f => self.inner[offset..offset + 4].copy_from_slice(&data_le_bytes),
-            _ => panic!("Error: Invalid memory write mask: {:#x}", mask),
+            _ => return Err(MemoryError::IllegalMask(mask, addr)),
         }
+        Ok(())
     }
 }
 
@@ -69,8 +70,4 @@ impl Default for Memory {
             inner: vec![0; MEM_SIZE].into_boxed_slice(),
         }
     }
-}
-
-pub fn init_pmem(memory: Memory) {
-    PMEM.set(memory.into()).expect("Memory already set");
 }

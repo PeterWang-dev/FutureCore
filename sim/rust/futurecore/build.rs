@@ -14,7 +14,7 @@ fn main() {
         pkg_config::probe_library("verilator").expect("Failed to find verilator via pkg-config");
     // Not really do compile actually, as we are using cmake to build the verilated_cpp.
     // Here we just "compile" the libverilated_cpp.a to libverilated.a
-    cxx_build::bridge("src/verilated.rs")
+    cxx_build::bridge("src/core/sim/verilated.rs")
         .include(&cmake_out_dir)
         .include(&cmake_out_dir.join("VFutureCore.dir"))
         .includes(verilator.include_paths)

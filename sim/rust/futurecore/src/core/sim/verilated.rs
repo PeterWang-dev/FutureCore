@@ -1,8 +1,9 @@
 use cxx::UniquePtr;
-use std::{ffi::CString, fs, mem::ManuallyDrop, path::Path};
+use std::{ffi::CString, fmt::Debug, fs, mem::ManuallyDrop, path::Path};
 
 use ffi::*;
 
+#[allow(dead_code)]
 #[cxx::bridge]
 mod ffi {
     unsafe extern "C++" {
@@ -47,6 +48,13 @@ mod ffi {
     }
 }
 
+unsafe impl Send for VerilatedContext {}
+unsafe impl Sync for VerilatedContext {}
+unsafe impl Send for VFutureCore {}
+unsafe impl Sync for VFutureCore {}
+unsafe impl Send for VerilatedFstC {}
+unsafe impl Sync for VerilatedFstC {}
+
 pub struct VerilatedRuntime {
     contextp: UniquePtr<VerilatedContext>,
     dutp: ManuallyDrop<UniquePtr<VFutureCore>>,
@@ -55,11 +63,7 @@ pub struct VerilatedRuntime {
 
 impl VerilatedRuntime {
     pub fn new() -> Self {
-        VerilatedRuntime {
-            contextp: make_context(),
-            dutp: ManuallyDrop::new(make_dut()),
-            tfp: None,
-        }
+        VerilatedRuntime::default()
     }
 
     pub fn enable_trace(&mut self, filepath: &Path) {
@@ -115,10 +119,25 @@ impl VerilatedRuntime {
             self.may_dump_trace();
         }
     }
+}
 
-    #[deprecated = "Use `EBREAK_RETRUN` to check if the simulation is finished"]
-    pub fn is_finished(&self) -> bool {
-        self.contextp.gotFinish()
+impl Default for VerilatedRuntime {
+    fn default() -> Self {
+        VerilatedRuntime {
+            contextp: make_context(),
+            dutp: ManuallyDrop::new(make_dut()),
+            tfp: Option::default(),
+        }
+    }
+}
+
+impl Debug for VerilatedRuntime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VerilatedRuntime")
+            .field("contextp", &String::from("VerilatedContext { ... }"))
+            .field("dutp", &String::from("VFutureCore { ... }"))
+            .field("tfp", &self.tfp.as_ref().map(|_| "VerilatedFstC { ... }"))
+            .finish()
     }
 }
 
@@ -129,8 +148,9 @@ impl Drop for VerilatedRuntime {
         }
         self.tfp = None; // Drop the trace file pointer
         self.dutp.pin_mut().final_();
-        unsafe {
-            ManuallyDrop::drop(&mut self.dutp); // DUT pointer must be dropped before context
-        }
+        // ! BUG: Spin lock not released properly, leaking memory for temporary workaround.
+        // unsafe {
+        //     ManuallyDrop::drop(&mut self.dutp); // DUT pointer must be dropped before context
+        // }
     }
 }
