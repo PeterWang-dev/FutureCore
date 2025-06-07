@@ -24,6 +24,7 @@ impl Simulator {
         }
     }
 
+    #[inline]
     fn check_status(&mut self) -> Result<bool, ExecutorError> {
         let mut status = self.status.lock().expect("Failed to lock status");
         match *status {
@@ -34,6 +35,16 @@ impl Simulator {
             State::Running => Ok(true),
             State::Aborted(code) => Err(ExecutorError::Aborted(code)),
             State::Exited => Ok(false),
+        }
+    }
+
+    #[inline]
+    fn step_once(&mut self) -> Result<bool, ExecutorError> {
+        if self.check_status()? {
+            self.runtime.step(1);
+            Ok(true)
+        } else {
+            Ok(false)
         }
     }
 }
@@ -57,11 +68,17 @@ impl Executor for Simulator {
     }
 
     fn step(&mut self, num_cycles: u64) -> Result<(), ExecutorError> {
-        for _ in 0..num_cycles {
-            if !self.check_status()? {
-                break;
+        let mut cycle_remaining = num_cycles;
+        loop {
+            if self.step_once()? && cycle_remaining != 0 {
+                if num_cycles == u64::MAX {
+                    continue; // Infinite loop for maximum cycles
+                }
+
+                cycle_remaining -= 1;
+                continue;
             }
-            self.runtime.step(1);
+            break;
         }
 
         Ok(())
