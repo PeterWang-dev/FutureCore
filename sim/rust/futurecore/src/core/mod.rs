@@ -26,6 +26,6 @@ pub trait Executor {
         memory: Memory,
         devices: DeviceList,
     ) -> Result<Box<dyn Executor>, ExecutorError>;
-    fn step(&mut self, num: u32) -> Result<(), ExecutorError>;
+    fn step(&mut self, num: u64) -> Result<(), ExecutorError>;
     fn status(&self) -> State;
 }

@@ -41,7 +41,7 @@ pub fn init_sim(
 
 pub fn run(mut executor: Box<dyn Executor>) -> Result<(), ExitCode> {
     executor
-        .step(u32::MAX)
+        .step(u64::MAX)
         .map_err(|ExecutorError::Aborted(code)| {
             eprintln!("error: Executor aborted with code {}", code);
             ExitCode::from(code)

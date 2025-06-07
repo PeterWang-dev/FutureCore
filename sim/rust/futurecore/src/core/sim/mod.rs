@@ -56,7 +56,7 @@ impl Executor for Simulator {
         Ok(Box::new(executor))
     }
 
-    fn step(&mut self, num_cycles: u32) -> Result<(), ExecutorError> {
+    fn step(&mut self, num_cycles: u64) -> Result<(), ExecutorError> {
         for _ in 0..num_cycles {
             if !self.check_status()? {
                 break;
