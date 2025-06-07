@@ -1,6 +1,9 @@
 use super::{DEVICE_BASE, Device};
 use crate::error::DeviceError;
-use std::ops::Range;
+use std::{
+    io::{Write, stdout},
+    ops::Range,
+};
 
 const NAME: &'static str = "Serial";
 const ADDR: u32 = DEVICE_BASE + 0x3f8;
@@ -29,6 +32,7 @@ impl Device for Serial {
         match mask {
             0x01 => {
                 print!("{}", data as u8 as char);
+                stdout().flush().expect("Failed to flush stdout");
                 Ok(())
             }
             _ => Err(DeviceError::IllegalOperation(
