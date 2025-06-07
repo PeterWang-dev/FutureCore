@@ -21,8 +21,6 @@ pub enum MemoryError {
 pub enum DeviceError {
     #[error("Unsupported device: {0}")]
     UnsupportedDevice(String),
-    #[error("Address out of bound: {0:#x}")]
-    AddressOutOfBound(u32),
     #[error("Address not mapped to any device: {0:#x}")]
     AddressNotMapped(u32),
     #[error("Read not supported for device: {0} at address: {1:#x}")]

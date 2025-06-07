@@ -1,8 +1,16 @@
+use cxx::memory;
+
 use super::State;
-use crate::{arch::rv32i::Rv32iRegs, dev::DeviceList, error::DeviceError, mem::Memory};
+use crate::{
+    arch::rv32i::Rv32iRegs,
+    dev::{DEVICE_RANGE, DeviceList},
+    error::DeviceError,
+    mem::Memory,
+};
+use core::panic;
 use std::{
     slice,
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, Mutex, MutexGuard, OnceLock},
 };
 
 pub type DpiVar<T> = Arc<Mutex<T>>;
@@ -13,65 +21,62 @@ static REGISTERS: OnceDpiVar<Rv32iRegs> = OnceDpiVar::new();
 static MEMORY: OnceDpiVar<Memory> = OnceDpiVar::new();
 static DEVICES: OnceDpiVar<DeviceList> = OnceDpiVar::new();
 
-#[unsafe(no_mangle)]
-pub extern "C" fn pmem_read(raddr: u32) -> u32 {
-    let devices = DEVICES
-        .get()
-        .expect("DPI-DEVICES not initialized")
-        .lock()
-        .expect("Failed to lock DPI-DEVICES twice");
-    let memory = MEMORY
+fn lock_memory() -> MutexGuard<'static, Memory> {
+    MEMORY
         .get()
         .expect("DPI-MEMORY not initialized")
         .lock()
-        .expect("Failed to lock DPI-MEMORY twice");
+        .expect("Failed to lock DPI-MEMORY twice")
+}
 
-    match devices.read(raddr) {
-        Ok(data) => data,
-        Err(DeviceError::AddressOutOfBound(addr)) => match memory.read(addr) {
+fn lock_device() -> MutexGuard<'static, DeviceList> {
+    DEVICES
+        .get()
+        .expect("DPI-DEVICES not initialized")
+        .lock()
+        .expect("Failed to lock DPI-DEVICES twice")
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn pmem_read(raddr: u32) -> u32 {
+    if DEVICE_RANGE.contains(&raddr) {
+        let devices = lock_device();
+        match devices.read(raddr) {
             Ok(data) => data,
+            Err(DeviceError::ReadNotSupported(_d, _a)) => {
+                // Commented out to avoid unnecessary warnings
+                // eprint!(
+                //     "warning: pmem_read: {} does not support read at address {:#x}",
+                //     _d, _a
+                // );
+                // eprintln!("Returning 0x0 as default value.");
+                // ! Note: At hardware side, read is asynchronous, so this function is always been evaluated.
+                // !       Returning 0x0 to prevent unexpected panic!
+                0
+            }
             Err(e) => {
                 panic!("error: pmem_read: {}", e);
             }
-        },
-        Err(DeviceError::ReadNotSupported(_d, _a)) => {
-            // Commented out to avoid unnecessary warnings
-            // eprint!(
-            //     "warning: pmem_read: {} does not support read at address {:#x}",
-            //     _d, _a
-            // );
-            // eprintln!("Returning 0x0 as default value.");
-            // ! Note: At hardware side, read is asynchronous, so this function is always been evaluated.
-            // !       Returning 0x0 to prevent unexpected panic!
-            0
         }
-        Err(e) => {
-            panic!("error: pmem_read: {}", e);
+    } else {
+        let memory = lock_memory();
+        match memory.read(raddr) {
+            Ok(data) => data,
+            Err(e) => panic!("error: pmem_read: {}", e),
         }
     }
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
-    let devices = DEVICES
-        .get()
-        .expect("DPI-DEVICES not initialized")
-        .lock()
-        .expect("Failed to lock DPI-DEVICES twice");
-    let mut memory = MEMORY
-        .get()
-        .expect("DPI-MEMORY not initialized")
-        .lock()
-        .expect("Failed to lock DPI-MEMORY twice");
-
-    match devices.write(waddr, wdata, wmask) {
-        Ok(()) => {}
-        Err(DeviceError::AddressOutOfBound(addr)) => {
-            if let Err(e) = memory.write(addr, wdata, wmask) {
-                panic!("error: pmem_write: {}", e);
-            }
+    if DEVICE_RANGE.contains(&waddr) {
+        let devices = lock_device();
+        if let Err(e) = devices.write(waddr, wdata, wmask) {
+            panic!("error: pmem_write: {}", e);
         }
-        Err(e) => {
+    } else {
+        let mut memory = lock_memory();
+        if let Err(e) = memory.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);
         }
     }

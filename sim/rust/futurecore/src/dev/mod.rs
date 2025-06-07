@@ -10,7 +10,7 @@ use std::{cell::RefCell, fmt::Debug, ops::Range};
 type DeviceType<T> = RefCell<Box<T>>;
 
 const DEVICE_BASE: u32 = 0xa0000000;
-const DEVICE_RANGE: Range<u32> = DEVICE_BASE..(DEVICE_BASE + 0x1000);
+pub const DEVICE_RANGE: Range<u32> = DEVICE_BASE..(DEVICE_BASE + 0x1000);
 
 #[derive(Debug, Default)]
 pub struct DeviceList {
@@ -27,16 +27,7 @@ impl DeviceList {
         self
     }
 
-    fn check_range(&self, addr: u32) -> Result<(), DeviceError> {
-        if !DEVICE_RANGE.contains(&addr) {
-            return Err(DeviceError::AddressOutOfBound(addr));
-        }
-        Ok(())
-    }
-
     pub fn read(&self, addr: u32) -> Result<u32, DeviceError> {
-        self.check_range(addr)?;
-
         for device in self.devices.iter().map(|d| d.borrow()) {
             if device.in_range(addr) {
                 return device.read(addr);
@@ -47,8 +38,6 @@ impl DeviceList {
     }
 
     pub fn write(&self, addr: u32, data: u32, mask: u8) -> Result<(), DeviceError> {
-        self.check_range(addr)?;
-
         for device in self.devices.iter() {
             if device.borrow().in_range(addr) {
                 return device.borrow_mut().write(addr, data, mask);
