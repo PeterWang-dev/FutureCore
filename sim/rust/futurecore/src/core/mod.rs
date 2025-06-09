@@ -21,11 +21,7 @@ impl Default for State {
 }
 
 pub trait Executor {
-    fn init(
-        self,
-        memory: Memory,
-        devices: DeviceList,
-    ) -> Result<Box<dyn Executor>, ExecutorError>;
+    fn init(self, memory: Memory, devices: DeviceList) -> Result<Box<dyn Executor>, ExecutorError>;
     fn step(&mut self, num: u64) -> Result<(), ExecutorError>;
     fn status(&self) -> State;
 }

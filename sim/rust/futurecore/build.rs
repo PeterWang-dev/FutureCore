@@ -8,9 +8,10 @@ fn main() {
     let verilated_cpp = manifest_dir.join("verilated_cpp");
     println!("cargo:rerun-if-changed={}", verilated_cpp.display());
 
-    let cmake_out_dir = cmake::Config::new(&verilated_cpp).build();
     let verilator =
         pkg_config::probe_library("verilator").expect("Failed to find verilator via pkg-config");
+
+    let cmake_out_dir = cmake::Config::new(&verilated_cpp).build();
 
     // Not really do compile actually, as we are using cmake to build the verilated_cpp.
     // Here we just "compile" the libverilated_cpp.a to libverilated.a

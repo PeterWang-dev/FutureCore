@@ -26,7 +26,7 @@ impl Simulator {
 
     #[inline]
     fn check_status(&mut self) -> Result<bool, ExecutorError> {
-        let mut status = self.status.lock().expect("Failed to lock status");
+        let mut status = self.status.borrow_mut();
         match *status {
             State::Stopped => {
                 *status = State::Running;
@@ -85,6 +85,6 @@ impl Executor for Simulator {
     }
 
     fn status(&self) -> State {
-        self.status.lock().expect("Failed to lock status").clone()
+        self.status.borrow().clone()
     }
 }

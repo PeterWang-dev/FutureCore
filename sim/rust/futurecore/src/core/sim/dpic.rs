@@ -1,5 +1,3 @@
-use cxx::memory;
-
 use super::State;
 use crate::{
     arch::rv32i::Rv32iRegs,
@@ -7,13 +5,14 @@ use crate::{
     error::DeviceError,
     mem::Memory,
 };
-use core::panic;
 use std::{
+    cell::{Ref, RefCell, RefMut},
+    ops::Deref,
     slice,
-    sync::{Arc, Mutex, MutexGuard, OnceLock},
+    sync::{Arc, OnceLock},
 };
 
-pub type DpiVar<T> = Arc<Mutex<T>>;
+pub type DpiVar<T> = Arc<UnsafeDpiVar<T>>;
 type OnceDpiVar<T> = OnceLock<DpiVar<T>>;
 
 static STATUS: OnceDpiVar<State> = OnceDpiVar::new();
@@ -21,26 +20,50 @@ static REGISTERS: OnceDpiVar<Rv32iRegs> = OnceDpiVar::new();
 static MEMORY: OnceDpiVar<Memory> = OnceDpiVar::new();
 static DEVICES: OnceDpiVar<DeviceList> = OnceDpiVar::new();
 
-fn lock_memory() -> MutexGuard<'static, Memory> {
+#[derive(Debug, Default)]
+pub struct UnsafeDpiVar<T> {
+    inner: RefCell<T>,
+}
+
+unsafe impl<T> Send for UnsafeDpiVar<T> {}
+unsafe impl<T> Sync for UnsafeDpiVar<T> {}
+
+impl<T> From<T> for UnsafeDpiVar<T> {
+    fn from(value: T) -> Self {
+        UnsafeDpiVar {
+            inner: RefCell::new(value),
+        }
+    }
+}
+
+impl<T> Deref for UnsafeDpiVar<T> {
+    type Target = RefCell<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+fn get_memory() -> Ref<'static, Memory> {
+    MEMORY.get().expect("DPI-MEMORY not initialized").borrow()
+}
+
+fn get_memory_mut() -> RefMut<'static, Memory> {
     MEMORY
         .get()
         .expect("DPI-MEMORY not initialized")
-        .lock()
-        .expect("Failed to lock DPI-MEMORY twice")
+        .borrow_mut()
 }
 
-fn lock_device() -> MutexGuard<'static, DeviceList> {
-    DEVICES
-        .get()
-        .expect("DPI-DEVICES not initialized")
-        .lock()
-        .expect("Failed to lock DPI-DEVICES twice")
+fn get_devices() -> Ref<'static, DeviceList> {
+    DEVICES.get().expect("DPI-DEVICES not initialized").borrow()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_read(raddr: u32) -> u32 {
     if DEVICE_RANGE.contains(&raddr) {
-        let devices = lock_device();
+        let devices = get_devices();
+
         match devices.read(raddr) {
             Ok(data) => data,
             Err(DeviceError::ReadNotSupported(_d, _a)) => {
@@ -59,7 +82,7 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
             }
         }
     } else {
-        let memory = lock_memory();
+        let memory = get_memory();
         match memory.read(raddr) {
             Ok(data) => data,
             Err(e) => panic!("error: pmem_read: {}", e),
@@ -70,12 +93,12 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
     if DEVICE_RANGE.contains(&waddr) {
-        let devices = lock_device();
+        let devices = get_devices();
         if let Err(e) = devices.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);
         }
     } else {
-        let mut memory = lock_memory();
+        let mut memory = get_memory_mut();
         if let Err(e) = memory.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);
         }
@@ -87,8 +110,8 @@ pub extern "C" fn ebreak(status: u32) {
     let mut dpi_status = STATUS
         .get()
         .expect("DPI-STATUS not initialized")
-        .lock()
-        .expect("Failed to lock DPI-STATUS twice");
+        .borrow_mut();
+
     *dpi_status = if status == 0 {
         State::Exited
     } else {
@@ -102,8 +125,7 @@ pub extern "C" fn get_regs(gpr: *const u32) {
     let mut regs = REGISTERS
         .get()
         .expect("DPI-REGISTERS not initialized")
-        .lock()
-        .expect("Failed to lock DPI-REGISTERS twice");
+        .borrow_mut();
     *regs = Rv32iRegs::try_from(gpr_slice).expect("Failed to convert raw registers to Rv32iRegs");
 }
 

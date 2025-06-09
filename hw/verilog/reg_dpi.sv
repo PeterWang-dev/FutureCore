@@ -1,4 +1,4 @@
-import "DPI-C" function void get_regs(
+import "DPI-C" context function void get_regs(
     input bit[32 * 32 - 1:0] gprs
 );
 
