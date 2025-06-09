@@ -6,27 +6,29 @@
 }:
 let
   concatLines = pkgs.lib.strings.concatLines;
+  makeLibraryPath = pkgs.lib.makeLibraryPath;
 
   thisPackage = pkgs.callPackage ./default.nix { };
-  toolPackages =
-    with pkgs;
-    [
-      clang-tools
-      gtkwave
-      ieda
-      lolcat
-      metals
-    ];
+  toolPackages = with pkgs; [
+    llvmPackages.bintools
+    clang-tools
+    gtkwave
+    ieda
+    lolcat
+    metals
+  ];
 
   fenix = pkgs.callPackage (pkgs.fetchFromGitHub {
     owner = "nix-community";
     repo = "fenix";
-    rev = "main";
-    hash = "sha256-gILKNw2g7eGXt1aVJM0pUdeJQX0z6kXZNoiAJPjXHTo=";
+    rev = "monthly";
+    hash = "sha256-MJNhEBsAbxRp/53qsXv6/eaWkGS8zMGX9LuCz1BLeck==";
   }) { };
 
   rustToolchain = [
-    fenix.stable.toolchain
+    (fenix.fromToolchainFile {
+      file = ./sim/rust/rust-toolchain.toml;
+    })
     pkgs.pkg-config
   ];
 in
@@ -36,5 +38,12 @@ pkgs.mkShell {
   shellHook = concatLines [
     ''echo "This is NPC." | lolcat''
     shellHook
+  ];
+
+  LD_LIBRARY_PATH = makeLibraryPath [
+    (with pkgs; [
+      llvmPackages.libclang
+      zlib
+    ])
   ];
 }
