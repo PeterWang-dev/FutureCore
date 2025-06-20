@@ -4,13 +4,13 @@ mod verilated;
 pub use verilated::VerilatedRuntime;
 
 use super::{Executor, State};
-use crate::{arch::rv32i::Rv32iRegs, dev::DeviceList, error::ExecutorError, mem::Memory};
+use crate::{arch::rv32i::Registers, dev::DeviceList, error::ExecutorError, mem::Memory};
 use dpic::{DpiVar, init_dpic};
 
 #[derive(Debug, Default)]
 pub struct Simulator {
     status: DpiVar<State>,
-    registers: DpiVar<Rv32iRegs>,
+    registers: DpiVar<Registers>,
     memory: DpiVar<Memory>,
     devices: DpiVar<DeviceList>,
     runtime: VerilatedRuntime,

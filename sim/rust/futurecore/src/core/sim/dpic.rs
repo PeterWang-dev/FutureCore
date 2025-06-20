@@ -1,6 +1,6 @@
 use super::State;
 use crate::{
-    arch::rv32i::Rv32iRegs,
+    arch::rv32i::Registers,
     dev::{DEVICE_RANGE, DeviceList},
     error::DeviceError,
     mem::Memory,
@@ -16,7 +16,7 @@ pub type DpiVar<T> = Arc<UnsafeDpiVar<T>>;
 type OnceDpiVar<T> = OnceLock<DpiVar<T>>;
 
 static STATUS: OnceDpiVar<State> = OnceDpiVar::new();
-static REGISTERS: OnceDpiVar<Rv32iRegs> = OnceDpiVar::new();
+static REGISTERS: OnceDpiVar<Registers> = OnceDpiVar::new();
 static MEMORY: OnceDpiVar<Memory> = OnceDpiVar::new();
 static DEVICES: OnceDpiVar<DeviceList> = OnceDpiVar::new();
 
@@ -126,12 +126,12 @@ pub extern "C" fn get_regs(gpr: *const u32) {
         .get()
         .expect("DPI-REGISTERS not initialized")
         .borrow_mut();
-    *regs = Rv32iRegs::try_from(gpr_slice).expect("Failed to convert raw registers to Rv32iRegs");
+    *regs = Registers::try_from(gpr_slice).expect("Failed to convert raw registers to Rv32iRegs");
 }
 
 pub fn init_dpic(
     status: &DpiVar<State>,
-    registers: &DpiVar<Rv32iRegs>,
+    registers: &DpiVar<Registers>,
     memory: &DpiVar<Memory>,
     devices: &DpiVar<DeviceList>,
 ) {
