@@ -1,11 +1,11 @@
 use crate::{
-    arch::rv32i::{RV32I_BASE_ADDR as GUEST_BASE, RV32I_DEFAULT_IMAGE as DEFAULT_IMAGE},
+    arch::rv32i::{BASE_ADDR as GUEST_BASE, DEFAULT_IMAGE},
     error::MemoryError,
 };
 
 const MEM_SIZE: usize = 0x8000000;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Memory {
     inner: Box<[u8]>,
 }
@@ -32,6 +32,14 @@ impl Memory {
                 .flat_map(|&x| x.to_le_bytes())
                 .collect::<Vec<u8>>(),
         )
+    }
+
+    pub fn image(&self) -> &[u8] {
+        &self.inner
+    }
+
+    pub fn size(&self) -> usize {
+        self.inner.len()
     }
 
     fn convert_addr(addr: u32) -> Result<usize, MemoryError> {
