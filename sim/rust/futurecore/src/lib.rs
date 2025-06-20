@@ -6,15 +6,18 @@ mod mem;
 mod utils;
 
 use crate::{
+    arch::rv32i::Registers,
     core::{Executor, Simulator, sim::VerilatedRuntime},
     dev::{DeviceList, Serial, Timer},
     error::ExecutorError,
     mem::Memory,
+    utils::diff::init as diff_init,
 };
 use std::{error::Error, fs, path::Path, process::ExitCode};
 
 pub fn init_sim(
     fst_file: Option<&Path>,
+    diff_so: Option<&Path>,
     image_file: Option<&Path>,
 ) -> Result<Box<dyn Executor>, Box<dyn Error>> {
     let mut runtime = VerilatedRuntime::new();
@@ -34,8 +37,12 @@ pub fn init_sim(
         .register(Serial::new())
         .register(Timer::new());
 
-    let simulator = Simulator::new(runtime).init(memory, devices)?;
+    if let Some(so_path) = diff_so {
+        let init_regs = Registers::new();
+        diff_init(so_path, memory.clone(), init_regs)?;
+    }
 
+    let simulator = Simulator::new(runtime).init(memory, devices)?;
     Ok(simulator)
 }
 

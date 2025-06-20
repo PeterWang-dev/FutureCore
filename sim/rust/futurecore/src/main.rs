@@ -9,13 +9,20 @@ struct Cli {
     /// Enable trace to FST file
     #[arg(short, long, value_name = "FST FILE")]
     trace: Option<PathBuf>,
+    /// Enable diff mode, comparing the simulation with a reference simulator provided via dynamic shared object
+    #[arg(short, long, value_name = "DIFF SO")]
+    diff: Option<PathBuf>,
     /// The path to the image file to load into memory
     image: Option<PathBuf>,
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    let executor = match init_sim(cli.trace.as_deref(), cli.image.as_deref()) {
+    let executor = match init_sim(
+        cli.trace.as_deref(),
+        cli.diff.as_deref(),
+        cli.image.as_deref(),
+    ) {
         Ok(executor) => executor,
         Err(e) => {
             eprintln!("error: Error initializing simulation: {}", e);

@@ -1,2 +1,2 @@
-mod diff;
+pub mod diff;
 mod gdb;

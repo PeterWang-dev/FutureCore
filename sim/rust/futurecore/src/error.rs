@@ -1,3 +1,4 @@
+use dlopen2;
 use std::io;
 use thiserror::Error;
 
@@ -29,4 +30,10 @@ pub enum DeviceError {
     WriteNotSupported(&'static str, u32),
     #[error("Illegal operation: {0} on device: {1} at address: {2:#x}")]
     IllegalOperation(&'static str, &'static str, u32),
+}
+
+#[derive(Debug, Error)]
+pub enum DiffError {
+    #[error("Failed to load diff shared object: {0}")]
+    CanNotLoadObject(#[from] dlopen2::Error),
 }
