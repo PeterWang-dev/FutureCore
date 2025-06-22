@@ -1,23 +1,18 @@
 package futurecore
 
 import futurecore._
+import futurecore.lib.Debugger
 import spinal.core._
 
-case class FutureCore() extends Component {
-  val io = new Bundle {
-    val pc = out UInt (32 bits)
-  }
+case class FutureCore(rv32e: Boolean = true, hasDebugger: Boolean = true) extends Component {
   noIoPrefix()
 
   val ifu = IFU()
-  val idu = IDU()
+  val idu = IDU(rv32e)
   val exu = EXU()
   val mem = MAU()
   val wbu = WBU()
   val ctrl = Controller()
-
-  val pc = ifu.pcGen.pcReg.pull()
-  io.pc := pc
 
   ctrl.io.input.inst := ifu.io.output.inst
   ctrl.io.input.aluRes := exu.io.output.aluRes
@@ -43,10 +38,17 @@ case class FutureCore() extends Component {
   wbu.io.input.aluRes := exu.io.output.aluRes
   wbu.io.input.memRes := mem.io.output.memRe
   wbu.io.input.pcLink := ifu.io.output.pcNeigh
-  wbu.io.input.retStatus := idu.regFile.ret.pull()
+  wbu.io.input.retStatus := idu.io.output.ret
   wbu.io.ctrl <> ctrl.io.ctrl.wbu
+
+  if (hasDebugger) {
+    val debugger = Debugger(rv32e)
+    debugger.io.npc := ifu.pcGen.pcReg.pull()
+    debugger.io.inst := ifu.io.output.inst
+    debugger.io.gprs := idu.regFile.io.gprsDbg.pull()
+  }
 }
 
 object Elaborate extends App {
-  Config.spinal.generateSystemVerilog(FutureCore()).mergeRTLSource("blackbox")
+  Config.spinal.generateSystemVerilog(FutureCore(rv32e = true, hasDebugger = true)).mergeRTLSource("blackbox")
 }

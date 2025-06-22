@@ -40,11 +40,11 @@ case class IFU() extends Component {
   val instMem = new rom_dpi
 
   val pcGen = new Area {
-    val pcReg = Reg(UInt(32 bits)) init (U"32'h8000_0000")
+    val pcReg = Reg(UInt(32 bits))
     val immTarget = io.input.targetAbs & ~U"32'b1" // clear the LSB (2 bytes aligned)
     val immOffset = io.input.offsetRel
     val pcNeigh = pcReg + 4
-    val pcNext = Mux(io.ctrl.pcRelSel, U(pcReg.asSInt + immOffset), pcNeigh)
+    val pcCal = Mux(io.ctrl.pcRelSel, U(pcReg.asSInt + immOffset), pcNeigh)
 
     val pcFsm = new StateMachine {
       val reset = makeInstantEntry
@@ -57,7 +57,7 @@ case class IFU() extends Component {
         }
 
       gen.whenIsActive {
-        pcReg := Mux(io.ctrl.pcAbsSel, immTarget, pcNext)
+        pcReg := Mux(io.ctrl.pcAbsSel, immTarget, pcCal)
       }
     }
   }
