@@ -106,6 +106,7 @@ impl VerilatedRuntime {
         }
     }
 
+    #[inline]
     pub fn step(&mut self, num_cycles: u64) {
         for _ in 0..num_cycles {
             self.contextp.pin_mut().timeInc(1);
