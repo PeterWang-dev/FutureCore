@@ -20,10 +20,11 @@ object IFU {
   }
 
   case class Ctrl() extends Bundle with IMasterSlave {
+    val pcEn = Bool()
     val pcRelSel = Bool()
     val pcAbsSel = Bool()
     override def asMaster(): Unit = {
-      out(pcRelSel, pcAbsSel)
+      out(pcEn, pcRelSel, pcAbsSel)
     }
   }
 }
@@ -49,6 +50,7 @@ case class IFU() extends Component {
     val pcFsm = new StateMachine {
       val reset = makeInstantEntry
       val gen = new State
+      val pause = new State
 
       reset
         .whenIsActive {
@@ -56,9 +58,23 @@ case class IFU() extends Component {
           goto(gen)
         }
 
-      gen.whenIsActive {
-        pcReg := Mux(io.ctrl.pcAbsSel, immTarget, pcCal)
-      }
+      gen
+        .whenIsActive {
+          pcReg := Mux(io.ctrl.pcAbsSel, immTarget, pcCal)
+          when(io.ctrl.pcEn === False) {
+            goto(pause)
+          }
+        }
+
+      pause
+        .onEntry {
+          pcReg := pcReg
+        }
+        .whenIsActive {
+          when(io.ctrl.pcEn === True) {
+            goto(gen)
+          }
+        }
     }
   }
 

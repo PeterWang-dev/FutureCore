@@ -45,6 +45,7 @@ case class Controller() extends Component {
   val ctrlSignals = ControllSignals()
 
   // Default signals
+  ctrlSignals.ifu.pcEn := True
   ctrlSignals.ifu.pcAbsSel := False
   ctrlSignals.ifu.pcRelSel := False
   ctrlSignals.idu.regWrEn := False
@@ -153,6 +154,7 @@ case class Controller() extends Component {
     is(InstTypePat.CSR) {
       when(io.input.inst(20) === True) {
         // ebreak
+        ctrlSignals.ifu.pcEn := False // Disable PC update
         ctrlSignals.wbu.wbType := WriteBackType.Ebreak
       }
     }

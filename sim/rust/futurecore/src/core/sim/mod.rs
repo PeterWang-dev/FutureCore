@@ -46,12 +46,8 @@ impl Simulator {
 
     #[inline]
     fn step_once(&mut self) -> Result<bool, ExecutorError> {
-        if self.check_status()? {
-            self.runtime.step(1);
-            Ok(true)
-        } else {
-            Ok(false)
-        }
+        self.runtime.step(1);
+        self.check_status()
     }
 }
 

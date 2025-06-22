@@ -114,38 +114,37 @@ pub fn test(dut_ctx: impl Into<Context>) {
     CONTAINER.with(|cont| {
         let cont = cont.get().expect("CONTAINER not initialized");
 
-        if SKIP.load(Ordering::Acquire) {
-            let skipped_ctx = dut_ctx.into();
+        DO_SKIP_REF.with(|do_skip_ref| {
+            if SKIP.load(Ordering::Acquire) {
+                let skipped_ctx = dut_ctx.clone();
+                unsafe {
+                    cont.difftest_regcpy(
+                        &skipped_ctx as *const Context as *const c_void,
+                        Direction::ToRef.into(),
+                    );
+                }
+                SKIP.store(do_skip_ref.replace(false), Ordering::Release);
+                return;
+            }
+
+            if do_skip_ref.get() {
+                SKIP.store(do_skip_ref.replace(false), Ordering::Release);
+            }
+
             unsafe {
+                cont.difftest_exec(1);
                 cont.difftest_regcpy(
-                    &skipped_ctx as *const Context as *const c_void,
-                    Direction::ToRef.into(),
+                    &mut ref_ctx as *mut Context as *mut c_void,
+                    Direction::ToDut.into(),
                 );
             }
-            SKIP.store(false, Ordering::Release);
-            return;
-        }
 
-        DO_SKIP_REF.with(|do_skip_ref| {
-            if do_skip_ref.get() {
-                SKIP.store(true, Ordering::Release);
+            if ref_ctx != dut_ctx {
+                panic!(
+                    "Reference registers {:?} do not match DUT registers {:?}",
+                    ref_ctx, dut_ctx
+                );
             }
-            do_skip_ref.replace(false);
         });
-
-        unsafe {
-            cont.difftest_exec(1);
-            cont.difftest_regcpy(
-                &mut ref_ctx as *mut Context as *mut c_void,
-                Direction::ToDut.into(),
-            );
-        };
     });
-
-    if ref_ctx != dut_ctx {
-        panic!(
-            "Reference registers {:?} do not match DUT registers {:?}",
-            ref_ctx, dut_ctx
-        );
-    }
 }
