@@ -10,7 +10,7 @@ module regs_dpi #(
 );
   logic [(32 - NR_REGS) * 32 - 1:0] zeros = '0;
 
-  always_ff @(posedge clk) begin
+  always_comb begin
     if (resetn) begin
       get_regs({npc, zeros, gprs});
     end

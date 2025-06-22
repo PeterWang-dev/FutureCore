@@ -6,12 +6,11 @@ mod mem;
 mod utils;
 
 use crate::{
-    arch::rv32i::Registers,
     core::{Executor, Simulator, sim::VerilatedRuntime},
     dev::{DeviceList, Serial, Timer},
     error::ExecutorError,
     mem::Memory,
-    utils::diff::init as diff_init,
+    utils::diff::load as diff_load,
 };
 use std::{error::Error, fs, path::Path, process::ExitCode};
 
@@ -38,8 +37,7 @@ pub fn init_sim(
         .register(Timer::new());
 
     if let Some(so_path) = diff_so {
-        let init_regs = Registers::new();
-        diff_init(so_path, memory.clone(), init_regs)?;
+        diff_load(so_path)?;
     }
 
     let simulator = Simulator::new(runtime).init(memory, devices)?;

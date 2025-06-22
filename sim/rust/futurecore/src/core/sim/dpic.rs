@@ -4,6 +4,7 @@ use crate::{
     dev::{DEVICE_RANGE, DeviceList},
     error::DeviceError,
     mem::Memory,
+    utils::diff::skip_ref,
 };
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -62,8 +63,8 @@ fn get_devices() -> Ref<'static, DeviceList> {
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_read(raddr: u32) -> u32 {
     if DEVICE_RANGE.contains(&raddr) {
+        skip_ref();
         let devices = get_devices();
-
         match devices.read(raddr) {
             Ok(data) => data,
             Err(DeviceError::ReadNotSupported(_d, _a)) => {
@@ -93,6 +94,7 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
     if DEVICE_RANGE.contains(&waddr) {
+        skip_ref();
         let devices = get_devices();
         if let Err(e) = devices.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);
@@ -120,16 +122,22 @@ pub extern "C" fn ebreak(status: u32) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn get_regs(gpr: *const u32) {
-    let gpr_slice = unsafe { slice::from_raw_parts(gpr, 32) };
+pub extern "C" fn get_regs(gpr: *const u64) {
+    let gpr = unsafe {
+        slice::from_raw_parts(gpr, 33)
+            .iter()
+            .map(|n| *n as u32)
+            .collect::<Vec<u32>>()
+    };
     let mut regs = REGISTERS
         .get()
         .expect("DPI-REGISTERS not initialized")
         .borrow_mut();
-    *regs = Registers::try_from(gpr_slice).expect("Failed to convert raw registers to Rv32iRegs");
+    *regs = Registers::try_from(gpr.as_slice())
+        .expect("Failed to convert raw registers to rv32i::Registers");
 }
 
-pub fn init_dpic(
+pub fn init(
     status: &DpiVar<State>,
     registers: &DpiVar<Registers>,
     memory: &DpiVar<Memory>,

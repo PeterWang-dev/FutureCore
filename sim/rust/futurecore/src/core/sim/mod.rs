@@ -4,8 +4,14 @@ mod verilated;
 pub use verilated::VerilatedRuntime;
 
 use super::{Executor, State};
-use crate::{arch::rv32i::Registers, dev::DeviceList, error::ExecutorError, mem::Memory};
-use dpic::{DpiVar, init_dpic};
+use crate::{
+    arch::rv32i::Registers,
+    dev::DeviceList,
+    error::ExecutorError,
+    mem::Memory,
+    utils::diff::{init as diff_init, test as diff_test},
+};
+use dpic::{DpiVar, init as dpic_init};
 
 #[derive(Debug, Default)]
 pub struct Simulator {
@@ -56,29 +62,35 @@ impl Executor for Simulator {
         executor.memory = DpiVar::new(memory.into());
         executor.devices = DpiVar::new(devices.into());
 
-        init_dpic(
+        dpic_init(
             &executor.status,
             &executor.registers,
             &executor.memory,
             &executor.devices,
         );
+
+        let diff_ctx: Registers = executor.registers.borrow().clone();
+        let diff_mem: Memory = executor.memory.borrow().clone();
+        diff_init(diff_mem, diff_ctx);
+
         executor.runtime.reset(10);
 
         Ok(Box::new(executor))
     }
 
     fn step(&mut self, num_cycles: u64) -> Result<(), ExecutorError> {
-        let mut cycle_remaining = num_cycles;
+        let mut cycle_executed = 0;
         loop {
-            if self.step_once()? && cycle_remaining != 0 {
-                if num_cycles == u64::MAX {
-                    continue; // Infinite loop for maximum cycles
-                }
-
-                cycle_remaining -= 1;
-                continue;
+            if num_cycles != u64::MAX && cycle_executed >= num_cycles {
+                break;
             }
-            break;
+            if !self.step_once()? {
+                break;
+            }
+            cycle_executed += 1;
+            if cycle_executed > 1 {
+                diff_test(self.registers.borrow().clone());
+            };
         }
 
         Ok(())
