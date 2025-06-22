@@ -8,7 +8,7 @@ pub const DEFAULT_IMAGE: [u32; 5] = [
     0xdeadbeef, // some data
 ];
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Registers {
     gpr: [u32; 32],
     pc: u32,
@@ -28,15 +28,25 @@ impl Registers {
     }
 }
 
+impl Default for Registers {
+    fn default() -> Self {
+        Registers {
+            gpr: [0; 32],
+            pc: RESET_VECTOR,
+        }
+    }
+}
+
 impl TryFrom<&[u32]> for Registers {
     type Error = &'static str;
 
     fn try_from(value: &[u32]) -> Result<Self, Self::Error> {
-        if value.len() != 32 {
-            return Err("Expected 32 registers (32 GPRs)");
+        if value.len() != 33 {
+            return Err("Expected 32 GPRs and 1 PC, got a different length");
         }
         let mut regs = Registers::new();
         regs.gpr.copy_from_slice(&value[0..32]);
+        regs.pc = value[32];
         Ok(regs)
     }
 }
