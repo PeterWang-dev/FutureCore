@@ -10,7 +10,7 @@ let
 
   thisPackage = pkgs.callPackage ./default.nix { };
   toolPackages = with pkgs; [
-    llvmPackages.bintools
+    # llvmPackages.bintools
     clang-tools
     gtkwave
     ieda
@@ -40,10 +40,11 @@ pkgs.mkShell {
     shellHook
   ];
 
-  LD_LIBRARY_PATH = makeLibraryPath [
-    (with pkgs; [
-      llvmPackages.libclang
+  LD_LIBRARY_PATH = makeLibraryPath (
+    with pkgs;
+    [
+      llvmPackages.libclang.lib
       zlib
-    ])
-  ];
+    ]
+  );
 }
