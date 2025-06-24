@@ -100,9 +100,9 @@ pub fn init(init_mem: Memory, init_ctx: impl Into<Context>) {
     });
 }
 
-pub fn skip_ref() {
+pub fn set_skip_ref(value: bool) {
     DO_SKIP_REF.with(|do_skip_ref| {
-        do_skip_ref.replace(true);
+        do_skip_ref.replace(value);
     });
 }
 

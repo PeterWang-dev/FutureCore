@@ -4,7 +4,7 @@ use crate::{
     dev::{DEVICE_RANGE, DeviceList},
     error::DeviceError,
     mem::Memory,
-    utils::diff::skip_ref,
+    utils::diff::set_skip_ref,
 };
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -63,7 +63,7 @@ fn get_devices() -> Ref<'static, DeviceList> {
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_read(raddr: u32) -> u32 {
     if DEVICE_RANGE.contains(&raddr) {
-        skip_ref();
+        set_skip_ref(true);
         let devices = get_devices();
         match devices.read(raddr) {
             Ok(data) => data,
@@ -83,6 +83,7 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
             }
         }
     } else {
+        set_skip_ref(false);
         let memory = get_memory();
         match memory.read(raddr) {
             Ok(data) => data,
@@ -94,12 +95,13 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
     if DEVICE_RANGE.contains(&waddr) {
-        skip_ref();
+        set_skip_ref(true);
         let devices = get_devices();
         if let Err(e) = devices.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);
         }
     } else {
+        set_skip_ref(false);
         let mut memory = get_memory_mut();
         if let Err(e) = memory.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);
