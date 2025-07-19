@@ -22,7 +22,7 @@ let
     owner = "nix-community";
     repo = "fenix";
     rev = "monthly";
-    hash = "sha256-MJNhEBsAbxRp/53qsXv6/eaWkGS8zMGX9LuCz1BLeck==";
+    hash = "sha256-dJj8TUoZGj55Ttro37vvFGF2L+xlYNfspQ9u4BfqTFw=";
   }) { };
 
   rustToolchain = [
