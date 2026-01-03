@@ -1,6 +1,6 @@
 {
   stdenv,
-  mill,
+  mill_0_11,
   jdk,
   scala_2_13,
   python3,
@@ -19,7 +19,7 @@ stdenv.mkDerivation {
   src = ./.;
   nativeBuildInputs = [
     # For build Future Core
-    mill
+    mill_0_11
     jdk
     scala_2_13
     python3
