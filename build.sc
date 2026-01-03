@@ -1,9 +1,9 @@
 import mill._, scalalib._
 
-val spinalVersion = "1.12.0"
+val spinalVersion = "1.13.0"
 
 object futurecore extends SbtModule {
-  def scalaVersion = "2.13.14"
+  def scalaVersion = "2.13.18"
   override def millSourcePath = os.pwd
   def sources = T.sources(
     millSourcePath / "hw" / "spinal"
