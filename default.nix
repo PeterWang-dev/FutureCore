@@ -1,15 +1,16 @@
 {
   stdenv,
-  which,
   mill,
+  jdk,
   scala_2_13,
-  verilator,
+  python3,
+  which,
   rustc,
   cargo,
   llvmPackages,
   cmake,
   pkg-config,
-  python3,
+  verilator,
   zlib,
 }:
 stdenv.mkDerivation {
@@ -19,9 +20,10 @@ stdenv.mkDerivation {
   nativeBuildInputs = [
     # For build Future Core
     mill
+    jdk
     scala_2_13
-    which
     python3
+    which
     # For build simulation platform
     rustc
     cargo
