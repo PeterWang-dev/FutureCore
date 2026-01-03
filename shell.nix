@@ -1,40 +1,18 @@
 {
-  pkgs ? (import <nixpkgs> { }),
-  inputsFrom ? [ ],
-  additionalPackages ? [ ],
-  shellHook ? "",
+  pkgs ? import <nixpkgs> { },
 }:
 let
-  concatLines = pkgs.lib.strings.concatLines;
-
-  thisPackage = pkgs.callPackage ./default.nix { };
-  toolPackages =
-    with pkgs;
-    [
-      clang-tools
-      gtkwave
-      ieda
-      lolcat
-      metals
-    ];
-
-  fenix = pkgs.callPackage (pkgs.fetchFromGitHub {
-    owner = "nix-community";
-    repo = "fenix";
-    rev = "main";
-    hash = "sha256-oLrH70QIWB/KpaI+nztyP1hG4zAEEpMiNk6sA8QLQ/8=";
-  }) { };
-
-  rustToolchain = [
-    fenix.stable.toolchain
-    pkgs.pkg-config
-  ];
+  npc = pkgs.callPackage ./default.nix { };
 in
-pkgs.mkShell {
-  inputsFrom = inputsFrom ++ [ thisPackage ];
-  packages = additionalPackages ++ toolPackages ++ rustToolchain;
-  shellHook = concatLines [
-    ''echo "This is NPC." | lolcat''
-    shellHook
+pkgs.mkShell rec {
+  inputsFrom = [ npc ];
+  packages = with pkgs; [
+    gtkwave
+    ieda
+    metals
   ];
+  shellHook = ''
+    export NPC_HOME=${NPC_HOME}
+  '';
+  NPC_HOME = toString ./.;
 }
