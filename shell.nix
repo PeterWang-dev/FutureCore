@@ -7,6 +7,7 @@ let
   npc = pkgs.callPackage ./default.nix { inherit mill_0_11; };
 in
 pkgs.mkShell rec {
+  name = "npc-env";
   inputsFrom = [ npc ];
   packages = with pkgs; [
     gtkwave
