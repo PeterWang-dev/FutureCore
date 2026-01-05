@@ -1,24 +1,38 @@
 {
   stdenv,
-  mill,
+  mill_0_11,
+  jdk,
   scala_2_13,
-  verilator,
   python3,
-  yosys,
+  which,
+  rustc,
+  cargo,
+  llvmPackages,
+  cmake,
+  pkg-config,
+  verilator,
   zlib,
-  SDL2_classic,
-  SDL2_ttf,
-  SDL2_image,
 }:
 stdenv.mkDerivation {
-  pname = "futurecore";
+  pname = "npc";
   version = "0.1.0";
-  buildInputs = [
-    mill
+  src = ./.;
+  nativeBuildInputs = [
+    # For build Future Core
+    mill_0_11
+    jdk
     scala_2_13
-    verilator
     python3
-    yosys
+    which
+    # For build simulation platform
+    rustc
+    cargo
+    llvmPackages.bintools
+    cmake
+    pkg-config
+  ];
+  buildInputs = [
+    verilator
     zlib
   ];
 }

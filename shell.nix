@@ -1,50 +1,32 @@
 {
-  pkgs ? (import <nixpkgs> { }),
-  inputsFrom ? [ ],
-  additionalPackages ? [ ],
-  shellHook ? "",
+  pkgs ? import (fetchTarball "https://nixos.org/channels/nixos-25.11/nixexprs.tar.xz") { },
 }:
 let
-  concatLines = pkgs.lib.strings.concatLines;
-  makeLibraryPath = pkgs.lib.makeLibraryPath;
+  # Append overlays after nixpkgs import to avoid issues with multi-file interactions
+  pkgsOverlay = pkgs.appendOverlays [
+    # fenix overlay for Rust toolchain management
+    (import "${fetchTarball "https://github.com/nix-community/fenix/archive/main.tar.gz"}/overlay.nix")
+  ];
 
-  thisPackage = pkgs.callPackage ./default.nix { };
-  toolPackages = with pkgs; [
-    # llvmPackages.bintools
-    clang-tools
+  # Use mill 0.11.12 instead of the latest version with breaking changes
+  mill_0_11 = pkgsOverlay.callPackage ./nix/mill-0.11.12.nix { };
+  rustToolchain = pkgsOverlay.fenix.fromToolchainFile {
+    file = ./sim/rust/rust-toolchain.toml;
+    sha256 = "sha256-sqSWJDUxc+zaz1nBWMAJKTAGBuGWP25GCftIOlCEAtA=";
+  };
+  npc = pkgsOverlay.callPackage ./default.nix { inherit mill_0_11; };
+in
+pkgsOverlay.mkShell rec {
+  name = "npc-env";
+  inputsFrom = [ npc ];
+  packages = with pkgsOverlay; [
+    rustToolchain
+    metals
     gtkwave
     ieda
-    lolcat
-    metals
   ];
-
-  fenix = pkgs.callPackage (pkgs.fetchFromGitHub {
-    owner = "nix-community";
-    repo = "fenix";
-    rev = "monthly";
-    hash = "sha256-dJj8TUoZGj55Ttro37vvFGF2L+xlYNfspQ9u4BfqTFw=";
-  }) { };
-
-  rustToolchain = [
-    (fenix.fromToolchainFile {
-      file = ./sim/rust/rust-toolchain.toml;
-    })
-    pkgs.pkg-config
-  ];
-in
-pkgs.mkShell {
-  inputsFrom = inputsFrom ++ [ thisPackage ];
-  packages = additionalPackages ++ toolPackages ++ rustToolchain;
-  shellHook = concatLines [
-    ''echo "This is NPC." | lolcat''
-    shellHook
-  ];
-
-  LD_LIBRARY_PATH = makeLibraryPath (
-    with pkgs;
-    [
-      llvmPackages.libclang.lib
-      zlib
-    ]
-  );
+  shellHook = ''
+    export NPC_HOME=${NPC_HOME}
+  '';
+  NPC_HOME = toString ./.;
 }
