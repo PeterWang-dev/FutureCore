@@ -1,24 +1,25 @@
 {
-  pkgs ? import (fetchTarball "https://nixos.org/channels/nixos-25.11/nixexprs.tar.xz") {
-    overlays = [
-      (import "${fetchTarball "https://github.com/nix-community/fenix/archive/main.tar.gz"}/overlay.nix")
-    ];
-  },
-
+  pkgs ? import (fetchTarball "https://nixos.org/channels/nixos-25.11/nixexprs.tar.xz") { },
 }:
 let
-  # use mill 0.11.12 instead of the latest version with breaking changes
-  mill_0_11 = pkgs.callPackage ./nix/mill-0.11.12.nix { };
-  rustToolchain = pkgs.fenix.fromToolchainFile {
+  # Append overlays after nixpkgs import to avoid issues with multi-file interactions
+  pkgsOverlay = pkgs.appendOverlays [
+    # fenix overlay for Rust toolchain management
+    (import "${fetchTarball "https://github.com/nix-community/fenix/archive/main.tar.gz"}/overlay.nix")
+  ];
+
+  # Use mill 0.11.12 instead of the latest version with breaking changes
+  mill_0_11 = pkgsOverlay.callPackage ./nix/mill-0.11.12.nix { };
+  rustToolchain = pkgsOverlay.fenix.fromToolchainFile {
     file = ./sim/rust/rust-toolchain.toml;
     sha256 = "sha256-sqSWJDUxc+zaz1nBWMAJKTAGBuGWP25GCftIOlCEAtA=";
   };
-  npc = pkgs.callPackage ./default.nix { inherit mill_0_11; };
+  npc = pkgsOverlay.callPackage ./default.nix { inherit mill_0_11; };
 in
-pkgs.mkShell rec {
+pkgsOverlay.mkShell rec {
   name = "npc-env";
   inputsFrom = [ npc ];
-  packages = with pkgs; [
+  packages = with pkgsOverlay; [
     rustToolchain
     metals
     gtkwave
