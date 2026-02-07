@@ -22,6 +22,8 @@ pkgsOverlay.mkShell rec {
   packages = with pkgsOverlay; [
     rustToolchain
     metals
+    scalafmt
+    sbt
     gtkwave
     ieda
   ];
