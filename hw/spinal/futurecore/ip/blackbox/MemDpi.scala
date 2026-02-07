@@ -1,4 +1,4 @@
-package futurecore.blackbox
+package futurecore.ip.blackbox
 
 import spinal.core._
 

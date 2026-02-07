@@ -1,6 +1,6 @@
 package futurecore
 
-import futurecore.lib.{Alu, ImmGen}
+import futurecore.ip.{Alu, ImmGen}
 import spinal.core._
 import spinal.lib.master
 

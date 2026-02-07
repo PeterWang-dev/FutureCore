@@ -1,6 +1,6 @@
 package futurecore
 
-import futurecore.blackbox.ebreak_dpi
+import futurecore.ip.blackbox.ebreak_dpi
 import spinal.core._
 import spinal.lib._
 

@@ -1,6 +1,6 @@
 package futurecore
 
-import futurecore.lib.Alu
+import futurecore.ip.Alu
 import spinal.core._
 import spinal.lib._
 

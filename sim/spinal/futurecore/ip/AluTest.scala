@@ -1,4 +1,4 @@
-package futurecore.lib
+package futurecore.ip
 
 import futurecore.Config
 import spinal.core.sim._

@@ -1,6 +1,6 @@
 package futurecore
 
-import futurecore.blackbox.rom_dpi
+import futurecore.ip.blackbox.rom_dpi
 import spinal.core._
 import spinal.lib._
 import spinal.lib.fsm._

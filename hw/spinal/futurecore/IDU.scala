@@ -1,6 +1,6 @@
 package futurecore
 
-import futurecore.lib.{ImmGen, RegFile}
+import futurecore.ip.{ImmGen, RegFile}
 import spinal.core._
 import spinal.lib._
 
