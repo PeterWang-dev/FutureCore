@@ -4,11 +4,11 @@ import spinal.core._
 
 class rom_dpi extends BlackBox {
   val io = new Bundle {
-    val clk = in Bool ()
-    val resetn = in Bool ()
-    val valid = in Bool ()
-    val raddr = in UInt (32 bits)
-    val rdata = out Bits (32 bits)
+    val clk = in port Bool()
+    val resetn = in port Bool()
+    val valid = in port Bool()
+    val raddr = in port UInt(32 bits)
+    val rdata = out port Bits(32 bits)
   }
 
   noIoPrefix()
@@ -18,15 +18,15 @@ class rom_dpi extends BlackBox {
 
 class ram_dpi extends BlackBox {
   val io = new Bundle {
-    val clk = in Bool ()
-    val resetn = in Bool ()
-    val valid = in Bool ()
-    val raddr = in UInt (32 bits)
-    val rdata = out Bits (32 bits)
-    val wen = in Bool ()
-    val waddr = in UInt (32 bits)
-    val wdata = in Bits (32 bits)
-    val wmask = in Bits (8 bits)
+    val clk = in port Bool()
+    val resetn = in port Bool()
+    val valid = in port Bool()
+    val raddr = in port UInt(32 bits)
+    val rdata = out port Bits(32 bits)
+    val wen = in port Bool()
+    val waddr = in port UInt(32 bits)
+    val wdata = in port Bits(32 bits)
+    val wmask = in port Bits(8 bits)
   }
 
   noIoPrefix()
