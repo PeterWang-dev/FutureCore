@@ -13,13 +13,16 @@ class ExecutePlugin extends FiberPlugin {
   import IntAlu.AluOp
   import DataMemory.AccessWidth
 
-  val logic = during setup new Area {
+  val setup = during setup new Area {
     val fp = host[FetchPlugin]
     val dp = host[DecodePlugin]
     val cs = host[CtrlService]
     val buildBefore = retains(cs.ctrlLock)
+  }
 
-    awaitBuild()
+  val logic = during build new Area {
+    val cs = setup.get.cs
+    val buildBefore = setup.get.buildBefore
 
     val src = new SrcSelector
     val alu = new IntAlu
@@ -78,23 +81,54 @@ class ExecutePlugin extends FiberPlugin {
 
     buildBefore.release()
 
-    src.io.inRs1 := dp.getRs1()
-    src.io.inRs2 := dp.getRs2()
-    src.io.inPc := fp.getInstruction()
-    src.io.inImm := dp.getImm()
-    src.io.selUp := cs.getCtrlSignal(selUpDef)
-    src.io.selDown := cs.getCtrlSignal(selDownDef)
+    val rs1 = Bits(32 bits)
+    val rs2 = Bits(32 bits)
+    val pc = Bits(32 bits)
+    val imm = SInt(32 bits)
+    val selUp = SrcUpMode()
+    val selDown = SrcDownMode()
+    val aluOp = AluOp()
+    val memAccessWidth = AccessWidth()
+    val readSext = Bool()
+    val memWrite = Bool()
+    val writeValid = Bool()
+
+    src.io.inRs1 := rs1
+    src.io.inRs2 := rs2
+    src.io.inPc := pc
+    src.io.inImm := imm
+    src.io.selUp := selUp
+    src.io.selDown := selDown
 
     alu.io.inA := src.io.outSrcUp
     alu.io.inB := src.io.outSrcDown
-    alu.io.selOp := cs.getCtrlSignal(aluOpDef)
+    alu.io.selOp := aluOp
 
     dm.io.inAddr := alu.io.outRes.asUInt
-    dm.io.inDataWrite := dp.getRs2()
-    dm.io.selAccessWidth := cs.getCtrlSignal(memAccessDef)
-    dm.io.enableReadSext := cs.getCtrlSignal(readSextDef)
-    dm.io.enableWrite := cs.getCtrlSignal(memWriteDef)
-    dm.io.validDataWrite := cs.getCtrlSignal(writeValidDef)
+    dm.io.inDataWrite := rs2
+    dm.io.selAccessWidth := memAccessWidth
+    dm.io.enableReadSext := readSext
+    dm.io.enableWrite := memWrite
+    dm.io.validDataWrite := writeValid
+  }
+
+  val interconnect = during build new Area {
+    val fp = setup.get.fp
+    val dp = setup.get.dp
+    val cs = setup.get.cs
+    val l = logic.get
+
+    l.rs1 := dp.getRs1()
+    l.rs2 := dp.getRs2()
+    l.pc := fp.getInstruction()
+    l.imm := dp.getImm()
+    l.selUp := cs.getCtrlSignal(l.selUpDef)
+    l.selDown := cs.getCtrlSignal(l.selDownDef)
+    l.aluOp := cs.getCtrlSignal(l.aluOpDef)
+    l.memAccessWidth := cs.getCtrlSignal(l.memAccessDef)
+    l.readSext := cs.getCtrlSignal(l.readSextDef)
+    l.memWrite := cs.getCtrlSignal(l.memWriteDef)
+    l.writeValid := cs.getCtrlSignal(l.writeValidDef)
   }
 
   def getResult(): SInt = logic.get.alu.io.outRes

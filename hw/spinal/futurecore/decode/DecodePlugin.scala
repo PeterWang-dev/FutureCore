@@ -15,12 +15,12 @@ class DecodePlugin extends FiberPlugin with CtrlService {
   import CtrlService.CtrlDef
   import ImmGenerator.ImmMode
 
-  val logic = during setup new Area {
+  val setup = during setup new Area {
     val fp = host[FetchPlugin]
     val wp = host[WritebackPlugin]
+  }
 
-    awaitBuild()
-
+  val logic = during build new Area {
     val immGen = new ImmGenerator
     val regfile = new IntRegfile
 
@@ -51,19 +51,33 @@ class DecodePlugin extends FiberPlugin with CtrlService {
       }.toMap
     }
 
-    // ! Deadlock occurs here !!!
-    val inst = fp.getInstruction() // ! Blocked here, request FetchPlugin finish
+    val instruction = Bits(32 bits)
+    val writebackData = Bits(32 bits)
+    val immSel = ImmMode()
+    val rfWriteEnable = Bool()
 
-    ctrlArea.instruction := inst
+    ctrlArea.instruction := instruction
 
-    immGen.io.inInst := inst
-    immGen.io.selMode := getCtrlSignal(immSelDef)
+    immGen.io.inInst := instruction
+    immGen.io.selMode := immSel
 
-    regfile.io.inAddrReadA := Rvi.Rs1.extract(inst).asUInt
-    regfile.io.inAddrReadB := Rvi.Rs2.extract(inst).asUInt
-    regfile.io.inAddrWrite := Rvi.Rd.extract(inst).asUInt
-    // regfile.io.inDataWrite := wp.getWriteback()
-    regfile.io.enableWrite := getCtrlSignal(rfWriteEnableDef)
+    regfile.io.inAddrReadA := Rvi.Rs1.extract(instruction).asUInt
+    regfile.io.inAddrReadB := Rvi.Rs2.extract(instruction).asUInt
+    regfile.io.inAddrWrite := Rvi.Rd.extract(instruction).asUInt
+    regfile.io.inDataWrite := writebackData
+    regfile.io.enableWrite := rfWriteEnable
+
+  }
+
+  val interconnect = during build new Area {
+    val fp = setup.get.fp
+    val wp = setup.get.wp
+    val l = logic.get
+
+    l.instruction := fp.getInstruction()
+    l.writebackData := wp.getWriteback()
+    l.immSel := getCtrlSignal(l.immSelDef)
+    l.rfWriteEnable := getCtrlSignal(l.rfWriteEnableDef)
   }
 
   override def getCtrlSignal[T <: BaseType](key: CtrlDef[T, _]): T = {

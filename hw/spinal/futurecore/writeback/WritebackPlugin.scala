@@ -12,12 +12,15 @@ import futurecore.execute.ExecutePlugin
 class WritebackPlugin extends FiberPlugin {
   import CommitSelector.CommitSource
 
-  val logic = during setup new Area {
+  val setup = during setup new Area {
     val cs = host[CtrlService]
     val ep = host[ExecutePlugin]
     val buildBefore = retains(cs.ctrlLock)
+  }
 
-    awaitBuild()
+  val logic = during build new Area {
+    val cs = setup.get.cs
+    val buildBefore = setup.get.buildBefore
 
     val com = new CommitSelector
 
@@ -27,9 +30,23 @@ class WritebackPlugin extends FiberPlugin {
 
     buildBefore.release()
 
-    com.io.inResult := ep.getResult()
-    com.io.inMemory := ep.getMemOut()
-    com.io.selSource := cs.getCtrlSignal(commitSrcDef)
+    val result = SInt(32 bits)
+    val memOut = Bits(32 bits)
+    val commitSrc = CommitSource()
+
+    com.io.inResult := result
+    com.io.inMemory := memOut
+    com.io.selSource := commitSrc
+  }
+
+  val interconnect = during build new Area {
+    val ep = setup.get.ep
+    val cs = setup.get.cs
+    val l = logic.get
+
+    l.result := ep.getResult()
+    l.memOut := ep.getMemOut()
+    l.commitSrc := cs.getCtrlSignal(l.commitSrcDef)
   }
 
   def getWriteback(): Bits = logic.get.com.io.outCommit

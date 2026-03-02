@@ -10,13 +10,18 @@ import futurecore.execute.ExecutePlugin
 import futurecore.decode.DecodePlugin
 
 class FetchPlugin extends FiberPlugin {
-  val logic = during setup new Area {
+  val setup = during setup new Area {
     val cs = host[CtrlService]
+    val dp = host[DecodePlugin]
+    val ep = host[ExecutePlugin]
     val buildBefore = retains(cs.ctrlLock)
+  }
 
-    awaitBuild()
+  val logic = during build new Area {
+    val cs = setup.get.cs
+    val buildBefore = setup.get.buildBefore
 
-    val pc = new ProgramCounter(U"32'h8000_0000")
+    val pc = new ProgramCounter(0x8000_0000)
     val bt = new BranchTargeter
     val im = new InstructionMemory
 
@@ -48,13 +53,10 @@ class FetchPlugin extends FiberPlugin {
     im.io.instAddr := pc.io.instAddr
   }
 
-  val interconnect = during setup new Area {
-    val cs = host[CtrlService]
-    val dp = host[DecodePlugin]
-    val ep = host[ExecutePlugin]
-
-    awaitBuild()
-
+  val interconnect = during build new Area {
+    val cs = setup.get.cs
+    val dp = setup.get.dp
+    val ep = setup.get.ep
     val l = logic.get
 
     l.rs1 := dp.getRs1()
