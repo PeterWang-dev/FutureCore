@@ -2,6 +2,7 @@ package futurecore.fetch
 
 import spinal.core._
 import spinal.lib.misc.plugin._
+import spinal.lib.BinaryBuilder2
 
 import futurecore.riscv.Rvi
 import futurecore.decode.CtrlService
@@ -21,7 +22,7 @@ class FetchPlugin extends FiberPlugin {
     val cs = setup.get.cs
     val buildBefore = setup.get.buildBefore
 
-    val pc = new ProgramCounter(0x8000_0000)
+    val pc = new ProgramCounter("80000000".asHex)
     val bt = new BranchTargeter
     val im = new InstructionMemory
 
