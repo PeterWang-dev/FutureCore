@@ -12,8 +12,6 @@ import futurecore.decode.DecodePlugin
 class FetchPlugin extends FiberPlugin {
   val logic = during setup new Area {
     val cs = host[CtrlService]
-    val dp = host[DecodePlugin]
-    val ep = host[ExecutePlugin]
     val buildBefore = retains(cs.ctrlLock)
 
     awaitBuild()
@@ -33,15 +31,37 @@ class FetchPlugin extends FiberPlugin {
 
     buildBefore.release()
 
+    val rs1 = Bits(32 bits)
+    val imm = SInt(32 bits)
+    val branchBase = Bool()
+    val pcWrite = Bool()
+    val branchCond = Bool()
+
     bt.io.inPc := pc.io.instAddr
-    bt.io.inBaseReg := dp.getRs1() // ! Blocked Here, request DecodePlugin finish
-    bt.io.inOffsetImm := dp.getImm()
-    bt.io.enableBase := cs.getCtrlSignal(branchBaseDef)
+    bt.io.inBaseReg := rs1
+    bt.io.inOffsetImm := imm
+    bt.io.enableBase := branchBase
 
     pc.io.targetAddr := bt.io.outTarget
-    pc.io.directWriteEnable := cs.getCtrlSignal(pcWriteDef) & ep.getBranchCond()
+    pc.io.directWriteEnable := pcWrite & branchCond
 
     im.io.instAddr := pc.io.instAddr
+  }
+
+  val interconnect = during setup new Area {
+    val cs = host[CtrlService]
+    val dp = host[DecodePlugin]
+    val ep = host[ExecutePlugin]
+
+    awaitBuild()
+
+    val l = logic.get
+
+    l.rs1 := dp.getRs1()
+    l.imm := dp.getImm()
+    l.branchBase := cs.getCtrlSignal(l.branchBaseDef)
+    l.pcWrite := cs.getCtrlSignal(l.pcWriteDef)
+    l.branchCond := ep.getBranchCond()
   }
 
   def getInstruction(): Bits = logic.get.im.io.inst
