@@ -21,7 +21,7 @@ class WritebackPlugin extends FiberPlugin {
 
     val com = new CommitSelector
 
-    val commitSrcDef = new CtrlDef(CommitSource(), CommitSource.Result())
+    val commitSrcDef = new CtrlDef(CommitSource(), CommitSource.Result)
       .setWhen(CommitSource.Memory, Rvi.Lb, Rvi.Lh, Rvi.Lw, Rvi.Lbu, Rvi.Lhu)
     cs.registerCtrlSignal(commitSrcDef)
 

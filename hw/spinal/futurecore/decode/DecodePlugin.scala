@@ -15,7 +15,7 @@ class DecodePlugin extends FiberPlugin with CtrlService {
   import CtrlService.CtrlDef
   import ImmGenerator.ImmMode
 
-  val logic = during build new Area {
+  val logic = during setup new Area {
     val fp = host[FetchPlugin]
     val wp = host[WritebackPlugin]
 
@@ -24,7 +24,7 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     val immGen = new ImmGenerator
     val regfile = new IntRegfile
 
-    val immSelDef = new CtrlDef(ImmMode(), ImmMode.I())
+    val immSelDef = new CtrlDef(ImmMode(), ImmMode.I)
       .setWhen(ImmMode.I, Rvi.instructions.filter(_.fields.contains(Rvi.IImm)))
       .setWhen(ImmMode.S, Rvi.instructions.filter(_.fields.contains(Rvi.SImm)))
       .setWhen(ImmMode.B, Rvi.instructions.filter(_.fields.contains(Rvi.BImm)))
@@ -54,7 +54,6 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     // ! Deadlock occurs here !!!
     val inst = fp.getInstruction() // ! Blocked here, request FetchPlugin finish
 
-    // === 内部互联 ===
     ctrlArea.instruction := inst
 
     immGen.io.inInst := inst
@@ -63,11 +62,11 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     regfile.io.inAddrReadA := Rvi.Rs1.extract(inst).asUInt
     regfile.io.inAddrReadB := Rvi.Rs2.extract(inst).asUInt
     regfile.io.inAddrWrite := Rvi.Rd.extract(inst).asUInt
-    regfile.io.inDataWrite := wp.getWriteback()
+    // regfile.io.inDataWrite := wp.getWriteback()
     regfile.io.enableWrite := getCtrlSignal(rfWriteEnableDef)
   }
 
-  override def getCtrlSignal[T <: BaseType](key: CtrlDef[T]): T = {
+  override def getCtrlSignal[T <: BaseType](key: CtrlDef[T, _]): T = {
     logic.get.ctrlArea.map.get(key) match {
       case None    => ??? // ! Never reaches here theoretically
       case Some(s) => s.asInstanceOf[T] // ! Never throws here theoretically

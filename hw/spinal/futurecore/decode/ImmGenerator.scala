@@ -11,7 +11,6 @@ object ImmGenerator {
   }
 }
 
-
 class ImmGenerator extends Component {
   import ImmGenerator._
 

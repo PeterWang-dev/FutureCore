@@ -25,22 +25,25 @@ class ExecutePlugin extends FiberPlugin {
     val alu = new IntAlu
     val dm = new DataMemory
 
-    val selUpDef = new CtrlDef(SrcUpMode(), SrcUpMode.RegSrcA())
+    val selUpDef = new CtrlDef(SrcUpMode(), SrcUpMode.RegSrcA)
       .setWhen(SrcUpMode.Pc, Rvi.Auipc, Rvi.Jal, Rvi.Jalr)
       .setWhen(SrcUpMode.Zero, Rvi.Lui)
     cs.registerCtrlSignal(selUpDef)
 
-    val selDownDef = new CtrlDef(SrcDownMode(), SrcDownMode.RegSrcB())
+    val selDownDef = new CtrlDef(SrcDownMode(), SrcDownMode.RegSrcB)
       .setWhen(
         SrcDownMode.Imm,
         Rvi.instructions
           .filter(_.fields.exists(_.isInstanceOf[Rvi.Imm]))
+          // BImm are not used as ALU does the comparison between Rs1 and Rs2
           .filterNot(_.fields.contains(Rvi.BImm))
+          // Imms of Jal and Jalr are not used as ALU is incrementing the PC
+          .filterNot(inst => inst == Rvi.Jal || inst == Rvi.Jalr)
       )
       .setWhen(SrcDownMode.PcIncrement, Rvi.Jal, Rvi.Jalr)
     cs.registerCtrlSignal(selDownDef)
 
-    val aluOpDef = new CtrlDef(AluOp(), AluOp.Add())
+    val aluOpDef = new CtrlDef(AluOp(), AluOp.Add)
       .setWhen(AluOp.Sub, Rvi.Sub)
       .setWhen(AluOp.Xor, Rvi.Xori, Rvi.Xor)
       .setWhen(AluOp.Or, Rvi.Ori, Rvi.Or)
@@ -56,7 +59,7 @@ class ExecutePlugin extends FiberPlugin {
       .setWhen(AluOp.GreaterEqualUnsigned, Rvi.Bgeu)
     cs.registerCtrlSignal(aluOpDef)
 
-    val memAccessDef = new CtrlDef(AccessWidth(), AccessWidth.Byte())
+    val memAccessDef = new CtrlDef(AccessWidth(), AccessWidth.Byte)
       .setWhen(AccessWidth.Half, Rvi.Lh, Rvi.Lhu, Rvi.Sh)
       .setWhen(AccessWidth.Word, Rvi.Lw, Rvi.Sw)
     cs.registerCtrlSignal(memAccessDef)

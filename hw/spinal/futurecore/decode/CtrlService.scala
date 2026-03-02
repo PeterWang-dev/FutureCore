@@ -10,17 +10,20 @@ import scala.collection.mutable.{Map, ArrayBuffer}
 import futurecore.riscv.{Instruction, InstructionSet}
 
 object CtrlService {
-  class CtrlDef[T <: BaseType](val signalType: T, val default: T) {
-    private val valueMap = Map[T, ArrayBuffer[Instruction]]()
+  class CtrlDef[T <: BaseType, V](val signalType: T, val default: V) {
+    private val valueMap = Map[V, ArrayBuffer[Instruction]]()
 
-    def setWhen(value: T, insts: Instruction*): this.type = {
+    def setWhen(value: V, insts: Instruction*): this.type = {
       require(insts.nonEmpty, "At least one instruction must be provided")
       val buffer = valueMap.getOrElseUpdate(value, ArrayBuffer())
       buffer ++= insts
       this
     }
 
-    def setWhen(value: T, insts: Seq[Instruction])(implicit d: DummyImplicit): this.type =
+    def setWhen(
+        value: V,
+        insts: Seq[Instruction]
+    )(implicit d: DummyImplicit): this.type =
       setWhen(value, insts: _*)
 
     protected[decode] def toDecodingSpec: DecodingSpec[T] = {
@@ -34,19 +37,28 @@ object CtrlService {
   }
 
   object CtrlDef {
-    def apply[T <: BaseType](signalType: T, default: T): CtrlDef[T] =
+    def apply[T <: BaseType, V <: BaseType](
+        signalType: T,
+        default: V
+    ): CtrlDef[T, V] =
+      new CtrlDef(signalType, default)
+
+    def apply[T <: SpinalEnum](
+        signalType: SpinalEnumCraft[T],
+        default: SpinalEnumElement[T]
+    ): CtrlDef[SpinalEnumCraft[T], SpinalEnumElement[T]] =
       new CtrlDef(signalType, default)
   }
 }
 
 trait CtrlService {
   import CtrlService._
-  val ctrlSignals = ArrayBuffer[CtrlDef[_ <: BaseType]]()
+  val ctrlSignals = ArrayBuffer[CtrlDef[_ <: BaseType, _]]()
   val ctrlLock = Retainer()
 
-  def registerCtrlSignal[T <: BaseType](signal: CtrlDef[T]) = {
+  def registerCtrlSignal[T <: BaseType](signal: CtrlDef[T, _]) = {
     ctrlSignals += signal
   }
 
-  def getCtrlSignal[T <: BaseType](key: CtrlDef[T]): T
+  def getCtrlSignal[T <: BaseType](key: CtrlDef[T, _]): T
 }
