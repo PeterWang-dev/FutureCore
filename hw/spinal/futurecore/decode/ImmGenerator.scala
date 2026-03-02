@@ -29,7 +29,7 @@ class ImmGenerator extends Component {
   val jImm = (JImm.extract(inst) ## U"1'b0").sext
 
   // Select immediate based on mode
-  io.outImm := io.selMode.mux {
+  io.outImm := io.selMode.muxDc {
     ImmMode.I -> iImm
     ImmMode.S -> sImm
     ImmMode.B -> bImm

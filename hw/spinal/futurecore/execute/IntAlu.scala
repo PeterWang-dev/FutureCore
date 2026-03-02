@@ -71,7 +71,7 @@ class IntAlu extends Component {
   val one = S(1, 32 bits)
   val zero = S(0, 32 bits)
 
-  io.outRes := io.selOp.mux {
+  io.outRes := io.selOp.muxDc {
     AluOp.Add                  -> adderResult
     AluOp.Sub                  -> adderResult
     AluOp.Xor                  -> xorResult
