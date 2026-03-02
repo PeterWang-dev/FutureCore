@@ -4,7 +4,7 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.fsm._
 
-class ProgramCounter(resetVector: UInt) extends Component {
+class ProgramCounter(resetVector: BigInt) extends Component {
   val io = new Bundle {
     val directWriteEnable = in port Bool()
     val targetAddr = in port UInt(32 bits)
@@ -20,7 +20,7 @@ class ProgramCounter(resetVector: UInt) extends Component {
 
     reset
       .whenIsActive {
-        pcReg := resetVector
+        pcReg := U(resetVector, 32 bits)
         goto(gen)
       }
 
