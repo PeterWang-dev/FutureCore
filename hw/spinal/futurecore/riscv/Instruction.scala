@@ -18,7 +18,7 @@ case class Instruction(
   def toMasked = Masked(pattern)
 }
 
-case class BitField(val ranges: Range*) {
+abstract class BitField(val ranges: Range*) {
   private val name = this.getClass.getSimpleName.toLowerCase
 
   // Validate that ranges within this BitField don't overlap
