@@ -29,6 +29,7 @@ class IntAlu extends Component {
 
   // Use adder to implement Add, Sub and Comparisons (via Sub)
   val adder = new Adder
+
   adder.io.inA := inA
   adder.io.inB := Mux(io.selOp === AluOp.Add, inB, ~inB)
   adder.io.inC := (io.selOp =/= AluOp.Add)
@@ -71,20 +72,20 @@ class IntAlu extends Component {
   val one = S(1, 32 bits)
   val zero = S(0, 32 bits)
 
-  io.outRes := io.selOp.muxDc {
-    AluOp.Add                  -> adderResult
-    AluOp.Sub                  -> adderResult
-    AluOp.Xor                  -> xorResult
-    AluOp.Or                   -> orResult
-    AluOp.And                  -> andResult
-    AluOp.ShiftLeftLogic       -> sllResult
-    AluOp.ShiftRightLogic      -> srlResult
-    AluOp.ShiftRightArith      -> sraResult
-    AluOp.EqualTo              -> (isEqual ? one | zero)
-    AluOp.NotEqual             -> (isNotEqual ? one | zero)
-    AluOp.LessThan             -> (isLessThan ? one | zero)
-    AluOp.GreaterEqual         -> (isGreaterEqual ? one | zero)
-    AluOp.LessThanUnsigned     -> (isLessThanUnsigned ? one | zero)
+  io.outRes := io.selOp.mux(
+    AluOp.Add                  -> adderResult,
+    AluOp.Sub                  -> adderResult,
+    AluOp.Xor                  -> xorResult,
+    AluOp.Or                   -> orResult,
+    AluOp.And                  -> andResult,
+    AluOp.ShiftLeftLogic       -> sllResult,
+    AluOp.ShiftRightLogic      -> srlResult,
+    AluOp.ShiftRightArith      -> sraResult,
+    AluOp.EqualTo              -> (isEqual ? one | zero),
+    AluOp.NotEqual             -> (isNotEqual ? one | zero),
+    AluOp.LessThan             -> (isLessThan ? one | zero),
+    AluOp.GreaterEqual         -> (isGreaterEqual ? one | zero),
+    AluOp.LessThanUnsigned     -> (isLessThanUnsigned ? one | zero),
     AluOp.GreaterEqualUnsigned -> (isGreaterEqualUnsigned ? one | zero)
-  }
+  )
 }

@@ -24,7 +24,7 @@ object DataMemory {
 
 class DataMemory extends Component {
   import DataMemory._
-  
+
   val io = new Bundle {
     val selAccessWidth = in port AccessWidth()
     val inAddr = in port UInt(32 bits)
@@ -48,19 +48,18 @@ class DataMemory extends Component {
   val dataHalfZeroExt = half(memData).resized
   val dataHalfSignExt = half(memData).sext.asBits
 
-  io.outDataRead := io.selAccessWidth.muxDc {
-    AccessWidth.Byte -> (io.enableReadSext ? dataByteSignExt | dataByteZeroExt)
-    AccessWidth.Half -> (io.enableReadSext ? dataHalfSignExt | dataHalfZeroExt)
+  io.outDataRead := io.selAccessWidth.mux(
+    AccessWidth.Byte -> (io.enableReadSext ? dataByteSignExt | dataByteZeroExt),
+    AccessWidth.Half -> (io.enableReadSext ? dataHalfSignExt | dataHalfZeroExt),
     AccessWidth.Word -> memData
-  }
+  )
 
   mem.io.wen := io.enableWrite
   mem.io.waddr := io.inAddr
   mem.io.wdata := io.inDataWrite
-  mem.io.wmask := io.selAccessWidth.muxDc {
-    AccessWidth.Byte -> B"8'b0001"
-    AccessWidth.Half -> B"8'b0011"
+  mem.io.wmask := io.selAccessWidth.mux(
+    AccessWidth.Byte -> B"8'b0001",
+    AccessWidth.Half -> B"8'b0011",
     AccessWidth.Word -> B"8'b1111"
-  }
-
+  )
 }

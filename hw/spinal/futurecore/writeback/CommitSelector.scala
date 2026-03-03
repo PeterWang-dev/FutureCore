@@ -18,8 +18,8 @@ class CommitSelector extends Component {
     val outCommit = out port Bits(32 bits)
   }
 
-  io.outCommit := io.selSource.muxDc {
-    CommitSource.Result -> io.inResult.asBits
+  io.outCommit := io.selSource.mux(
+    CommitSource.Result -> io.inResult.asBits,
     CommitSource.Memory -> io.inMemory
-  }
+  )
 }

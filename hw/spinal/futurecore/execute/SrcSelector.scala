@@ -26,15 +26,15 @@ class SrcSelector extends Component {
     val outSrcDown = out port SInt(32 bits)
   }
 
-  io.outSrcUp := io.selUp.muxDc {
-    SrcUpMode.RegSrcA -> io.inRs1.asSInt
-    SrcUpMode.Pc      -> io.inPc.asSInt
+  io.outSrcUp := io.selUp.mux(
+    SrcUpMode.RegSrcA -> io.inRs1.asSInt,
+    SrcUpMode.Pc      -> io.inPc.asSInt,
     SrcUpMode.Zero    -> S"32'b0"
-  }
+  )
 
-  io.outSrcDown := io.selDown.muxDc {
-    SrcDownMode.RegSrcB     -> io.inRs2.asSInt
-    SrcDownMode.Imm         -> io.inImm
+  io.outSrcDown := io.selDown.mux(
+    SrcDownMode.RegSrcB     -> io.inRs2.asSInt,
+    SrcDownMode.Imm         -> io.inImm,
     SrcDownMode.PcIncrement -> S"32'h4"
-  }
+  )
 }
