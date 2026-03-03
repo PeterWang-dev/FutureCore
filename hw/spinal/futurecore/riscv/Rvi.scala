@@ -11,12 +11,12 @@ object Rvi extends InstructionSet {
   object Rs2 extends BitField(24 downto 20)
   object Funct7 extends BitField(31 downto 25)
 
-  // Immediate Definitions
+  // Immediate Definitions (Little Endian)
   class Imm(r: Range*) extends BitField(r: _*)
   // I-type immediate: single contiguous range [31:20]
   object IImm extends Imm(31 downto 20)
-  // S-type immediate: distributed across two ranges [11:7] and [31:25]
-  object SImm extends Imm((11 downto 7), (31 downto 25))
+  // S-type immediate: distributed across two ranges [31:25|11:7]
+  object SImm extends Imm((31 downto 25), (11 downto 7))
   // B-type immediate: distributed across multiple ranges [31|7|30:25|11:8]
   object BImm extends Imm((31 downto 31), (7 downto 7), (30 downto 25), (11 downto 8))
   // U-type immediate: single contiguous range [31:12]
