@@ -19,7 +19,7 @@ class SrcSelector extends Component {
     val inRs1 = in port Bits(32 bits)
     val inRs2 = in port Bits(32 bits)
     val inImm = in port SInt(32 bits)
-    val inPc = in port Bits(32 bits)
+    val inPc = in port UInt(32 bits)
     val selUp = in port SrcUpMode()
     val selDown = in port SrcDownMode()
     val outSrcUp = out port SInt(32 bits)

@@ -67,5 +67,7 @@ class FetchPlugin extends FiberPlugin {
     l.branchCond := ep.getBranchCond()
   }
 
+  def getPc(): UInt = logic.get.pc.io.instAddr
+
   def getInstruction(): Bits = logic.get.im.io.inst
 }

@@ -83,7 +83,7 @@ class ExecutePlugin extends FiberPlugin {
 
     val rs1 = Bits(32 bits)
     val rs2 = Bits(32 bits)
-    val pc = Bits(32 bits)
+    val pc = UInt(32 bits)
     val imm = SInt(32 bits)
     val selUp = SrcUpMode()
     val selDown = SrcDownMode()
@@ -120,7 +120,7 @@ class ExecutePlugin extends FiberPlugin {
 
     l.rs1 := dp.getRs1()
     l.rs2 := dp.getRs2()
-    l.pc := fp.getInstruction()
+    l.pc := fp.getPc()
     l.imm := dp.getImm()
     l.selUp := cs.getCtrlSignal(l.selUpDef)
     l.selDown := cs.getCtrlSignal(l.selDownDef)
