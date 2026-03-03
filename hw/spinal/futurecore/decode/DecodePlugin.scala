@@ -25,7 +25,6 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     val regfile = new IntRegfile
 
     val immSelDef = new CtrlDef(ImmMode(), ImmMode.I)
-      .setWhen(ImmMode.I, Rvi.instructions.filter(_.fields.contains(Rvi.IImm)))
       .setWhen(ImmMode.S, Rvi.instructions.filter(_.fields.contains(Rvi.SImm)))
       .setWhen(ImmMode.B, Rvi.instructions.filter(_.fields.contains(Rvi.BImm)))
       .setWhen(ImmMode.U, Rvi.instructions.filter(_.fields.contains(Rvi.UImm)))
@@ -66,7 +65,6 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     regfile.io.inAddrWrite := Rvi.Rd.extract(instruction).asUInt
     regfile.io.inDataWrite := writebackData
     regfile.io.enableWrite := rfWriteEnable
-
   }
 
   val interconnect = during build new Area {
