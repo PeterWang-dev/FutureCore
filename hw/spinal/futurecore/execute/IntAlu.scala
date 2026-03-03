@@ -60,9 +60,9 @@ class IntAlu extends Component {
   val adderResult = adder.io.outS
 
   val shiftAmount = inB(4 downto 0).asUInt // max shift amount is log2(width)
-  val sllResult = (inA << shiftAmount).resized
-  val srlResult = (inA.asUInt >> shiftAmount).asSInt
-  val sraResult = (inA >> shiftAmount)
+  val sllResult = (inA << shiftAmount).resize(32 bits)
+  val srlResult = (inA.asUInt >> shiftAmount).asSInt.resize(32 bits)
+  val sraResult = (inA >> shiftAmount).resize(32 bits)
 
   val xorResult = inA ^ inB
   val orResult = inA | inB
