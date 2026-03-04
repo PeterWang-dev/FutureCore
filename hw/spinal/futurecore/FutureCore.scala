@@ -8,7 +8,7 @@ import futurecore.decode.DecodePlugin
 import futurecore.execute.ExecutePlugin
 import futurecore.writeback.WritebackPlugin
 
-class FutureCorePlugin extends Component {
+class FutureCore extends Component {
   val host = new PluginHost()
 
   host.asHostOf(
@@ -19,6 +19,6 @@ class FutureCorePlugin extends Component {
   )
 }
 
-object ElaborateExperimental extends App {
-  Config.spinal.generateSystemVerilog(new FutureCorePlugin).mergeRTLSource("blackbox")
+object Elaborate extends App {
+  Config.spinal.generateSystemVerilog(new FutureCore).mergeRTLSource("blackbox")
 }
