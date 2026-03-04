@@ -15,9 +15,9 @@ object DataMemory {
   def word(b: Bits): Bits = b(31 downto 0)
 
   object WriteMask {
-    val Byte = B"8'b0001"
-    val Half = B"8'b0011"
-    val Word = B"8'b1111"
+    def byte(): Bits = B"8'b0001"
+    def half(): Bits = B"8'b0011"
+    def word(): Bits = B"8'b1111"
   }
 
 }
@@ -58,8 +58,8 @@ class DataMemory extends Component {
   mem.io.waddr := io.inAddr
   mem.io.wdata := io.inDataWrite
   mem.io.wmask := io.selAccessWidth.mux(
-    AccessWidth.Byte -> B"8'b0001",
-    AccessWidth.Half -> B"8'b0011",
-    AccessWidth.Word -> B"8'b1111"
+    AccessWidth.Byte -> WriteMask.byte(),
+    AccessWidth.Half -> WriteMask.half(),
+    AccessWidth.Word -> WriteMask.word()
   )
 }
