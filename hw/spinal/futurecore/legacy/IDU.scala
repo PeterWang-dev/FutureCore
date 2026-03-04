@@ -1,6 +1,6 @@
-package futurecore
+package futurecore.legacy
 
-import futurecore.ip.{ImmGen, RegFile}
+import futurecore.legacy.ip.{ImmGen, RegFile}
 import spinal.core._
 import spinal.lib._
 

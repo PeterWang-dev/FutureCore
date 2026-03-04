@@ -1,10 +1,11 @@
-package futurecore.ip
+package futurecore.legacy.ip
 
 import futurecore.Config
 import spinal.core.sim._
 import scala.util.Random
 import org.scalatest.flatspec.AnyFlatSpec
 import spinal.core.log2Up
+import futurecore.legacy.ip.Alu
 
 class AluTest extends AnyFlatSpec {
   import Alu.AluOp

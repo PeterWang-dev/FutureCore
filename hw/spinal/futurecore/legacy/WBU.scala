@@ -1,4 +1,4 @@
-package futurecore
+package futurecore.legacy
 
 import futurecore.ip.blackbox.ebreak_dpi
 import spinal.core._

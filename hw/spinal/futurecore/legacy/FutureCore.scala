@@ -1,6 +1,7 @@
-package futurecore
+package futurecore.legacy
 
-import futurecore._
+import futurecore.Config
+import futurecore.legacy._
 import spinal.core._
 
 case class FutureCore() extends Component {

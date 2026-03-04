@@ -1,6 +1,7 @@
-package futurecore
+package futurecore.legacy
 
-import futurecore.ip.{Alu, ImmGen}
+import futurecore.legacy.ip.{Alu, ImmGen}
+import futurecore.legacy.{IDU, IFU, MAU, WBU, EXU}
 import spinal.core._
 import spinal.lib.master
 
