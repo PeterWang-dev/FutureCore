@@ -25,6 +25,7 @@ pkgsOverlay.mkShell rec {
     scalafmt
     sbt
     gtkwave
+    surfer
     ieda
   ];
   shellHook = ''
