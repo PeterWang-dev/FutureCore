@@ -24,7 +24,11 @@ out
 
 # Metals
 .metals
-project/metals.sbt
+.bloop
+project/**/metals.sbt
+
+.bsp
+.history
 
 # Eclipse
 bin/
