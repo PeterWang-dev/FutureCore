@@ -12,7 +12,7 @@ let
   mill_0_11 = pkgsOverlay.callPackage ./nix/mill-0.11.12.nix { };
   rustToolchain = pkgsOverlay.fenix.fromToolchainFile {
     file = ./sim/rust/rust-toolchain.toml;
-    sha256 = "sha256-sqSWJDUxc+zaz1nBWMAJKTAGBuGWP25GCftIOlCEAtA=";
+    sha256 = "sha256-SBKjxhC6zHTu0SyJwxLlQHItzMzYZ71VCWQC2hOzpRY=";
   };
   npc = pkgsOverlay.callPackage ./default.nix { inherit mill_0_11; };
 in
