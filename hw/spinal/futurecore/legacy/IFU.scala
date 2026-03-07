@@ -20,10 +20,11 @@ object IFU {
   }
 
   case class Ctrl() extends Bundle with IMasterSlave {
+    val pcEn = Bool()
     val pcRelSel = Bool()
     val pcAbsSel = Bool()
     override def asMaster(): Unit = {
-      out(pcRelSel, pcAbsSel)
+      out(pcEn, pcRelSel, pcAbsSel)
     }
   }
 }
@@ -40,15 +41,16 @@ case class IFU() extends Component {
   val instMem = new rom_dpi
 
   val pcGen = new Area {
-    val pcReg = Reg(UInt(32 bits)) init (U"32'h8000_0000")
+    val pcReg = Reg(UInt(32 bits))
     val immTarget = io.input.targetAbs & ~U"32'b1" // clear the LSB (2 bytes aligned)
     val immOffset = io.input.offsetRel
     val pcNeigh = pcReg + 4
-    val pcNext = Mux(io.ctrl.pcRelSel, U(pcReg.asSInt + immOffset), pcNeigh)
+    val pcCal = Mux(io.ctrl.pcRelSel, U(pcReg.asSInt + immOffset), pcNeigh)
 
     val pcFsm = new StateMachine {
       val reset = makeInstantEntry
       val gen = new State
+      val pause = new State
 
       reset
         .whenIsActive {
@@ -56,9 +58,23 @@ case class IFU() extends Component {
           goto(gen)
         }
 
-      gen.whenIsActive {
-        pcReg := Mux(io.ctrl.pcAbsSel, immTarget, pcNext)
-      }
+      gen
+        .whenIsActive {
+          pcReg := Mux(io.ctrl.pcAbsSel, immTarget, pcCal)
+          when(io.ctrl.pcEn === False) {
+            goto(pause)
+          }
+        }
+
+      pause
+        .onEntry {
+          pcReg := pcReg
+        }
+        .whenIsActive {
+          when(io.ctrl.pcEn === True) {
+            goto(gen)
+          }
+        }
     }
   }
 

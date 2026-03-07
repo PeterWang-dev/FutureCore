@@ -7,9 +7,7 @@ module ebreak_dpi (
     input wire [31:0] status
 );
   always @(posedge clk) begin
-    if (!resetn) begin
-      // Do nothing on reset
-    end else if (valid) begin
+    if (resetn & valid) begin
       ebreak(status);
     end
   end
