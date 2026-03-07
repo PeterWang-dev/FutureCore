@@ -10,17 +10,17 @@ class debug_dpi(gprNum: Int, gprWidth: Int) extends BlackBox {
 
   val io = new Bundle {
     val clk_i = in port Bool()
-    val reset_ni = in port Bool()
+    val rst_ni = in port Bool()
     val s = new Bundle {
       val pc_i = in port UInt(32 bits)
       val inst_i = in port Bits(32 bits)
-      val regs_i = in port Bits(gprNum * gprWidth bits)
+      val gprs_i = in port Bits(gprNum * gprWidth bits)
     }
   }
 
   noIoPrefix()
 
-  mapCurrentClockDomain(io.clk_i, io.reset_ni, resetActiveLevel = LOW)
+  mapCurrentClockDomain(io.clk_i, io.rst_ni, resetActiveLevel = LOW)
 
   addRTLPath("hw/verilog/debug_dpi.sv")
 }
