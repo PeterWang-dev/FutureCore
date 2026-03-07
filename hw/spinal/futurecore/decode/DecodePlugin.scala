@@ -90,4 +90,6 @@ class DecodePlugin extends FiberPlugin with CtrlService {
   def getRs2(): Bits = logic.get.regfile.io.outDataReadB
 
   def getImm(): SInt = logic.get.immGen.io.outImm
+
+  def getDbgRegfile(): Vec[Bits] = logic.get.regfile.io.dbgRegisters
 }

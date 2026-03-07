@@ -7,6 +7,7 @@ import futurecore.fetch.FetchPlugin
 import futurecore.decode.DecodePlugin
 import futurecore.execute.ExecutePlugin
 import futurecore.writeback.WritebackPlugin
+import futurecore.debug.DebugPlugin
 
 class FutureCore extends Component {
   val host = new PluginHost()
@@ -15,7 +16,8 @@ class FutureCore extends Component {
     new FetchPlugin,
     new DecodePlugin,
     new ExecutePlugin,
-    new WritebackPlugin
+    new WritebackPlugin,
+    new DebugPlugin
   )
 }
 
