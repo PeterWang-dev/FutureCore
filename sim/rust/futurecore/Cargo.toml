@@ -1,13 +1,16 @@
 [package]
 name = "futurecore"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 [dependencies]
-clap = { version = "4.5.38", features = ["derive"] }
-cxx = "1.0.158"
+clap = { version = "4.5.60", features = ["derive"] }
+cxx = "1.0.194"
+dlopen2 = { version = "0.8.2", features = ["derive"] }
+gdbstub = "0.7.9"
+thiserror = "2.0.18"
 
 [build-dependencies]
-cmake = "0.1.54"
-cxx-build = "1.0.158"
+cmake = "0.1.57"
+cxx-build = "1.0.194"
 pkg-config = "0.3.32"

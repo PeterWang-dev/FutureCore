@@ -17,10 +17,10 @@ build:
 	@cargo build --release
 
 run:
-	@cargo run --release -- $(ARGS) $(IMG)
+	@cargo run --release -- --diff $(NEMU_HOME)/tools/spike-diff/build/riscv32-spike-so $(ARGS) $(IMG)
 
 run-wave:
-	@cargo run --release -- --trace trace.fst $(ARGS) $(IMG)
+	@cargo run --release -- --diff $(NEMU_HOME)/tools/spike-diff/build/riscv32-spike-so --trace trace.fst $(ARGS) $(IMG)
 
 clean:
 	@cargo clean
