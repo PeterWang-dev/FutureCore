@@ -28,12 +28,12 @@ class ExecutePlugin extends FiberPlugin {
     val alu = new IntAlu
     val dm = new DataMemory
 
-    val selUpDef = new CtrlDef(SrcUpMode(), SrcUpMode.RegSrcA)
+    val selUpDef = CtrlDef(SrcUpMode(), SrcUpMode.RegSrcA)
       .setWhen(SrcUpMode.Pc, Rvi.Auipc, Rvi.Jal, Rvi.Jalr)
       .setWhen(SrcUpMode.Zero, Rvi.Lui)
     cs.registerCtrlSignal(selUpDef)
 
-    val selDownDef = new CtrlDef(SrcDownMode(), SrcDownMode.RegSrcB)
+    val selDownDef = CtrlDef(SrcDownMode(), SrcDownMode.RegSrcB)
       .setWhen(
         SrcDownMode.Imm,
         Rvi.instructions
@@ -46,7 +46,7 @@ class ExecutePlugin extends FiberPlugin {
       .setWhen(SrcDownMode.PcIncrement, Rvi.Jal, Rvi.Jalr)
     cs.registerCtrlSignal(selDownDef)
 
-    val aluOpDef = new CtrlDef(AluOp(), AluOp.Add)
+    val aluOpDef = CtrlDef(AluOp(), AluOp.Add)
       .setWhen(AluOp.Sub, Rvi.Sub)
       .setWhen(AluOp.Xor, Rvi.Xori, Rvi.Xor)
       .setWhen(AluOp.Or, Rvi.Ori, Rvi.Or)
@@ -62,20 +62,20 @@ class ExecutePlugin extends FiberPlugin {
       .setWhen(AluOp.GreaterEqualUnsigned, Rvi.Bgeu)
     cs.registerCtrlSignal(aluOpDef)
 
-    val memAccessDef = new CtrlDef(AccessWidth(), AccessWidth.Byte)
+    val memAccessDef = CtrlDef(AccessWidth(), AccessWidth.Byte)
       .setWhen(AccessWidth.Half, Rvi.Lh, Rvi.Lhu, Rvi.Sh)
       .setWhen(AccessWidth.Word, Rvi.Lw, Rvi.Sw)
     cs.registerCtrlSignal(memAccessDef)
 
-    val readSextDef = new CtrlDef(Bool(), True)
+    val readSextDef = CtrlDef(Bool(), True)
       .setWhen(False, Rvi.Lbu, Rvi.Lhu)
     cs.registerCtrlSignal(readSextDef)
 
-    val memWriteDef = new CtrlDef(Bool(), False)
+    val memWriteDef = CtrlDef(Bool(), False)
       .setWhen(True, Rvi.Sb, Rvi.Sh, Rvi.Sw)
     cs.registerCtrlSignal(memWriteDef)
 
-    val writeValidDef = new CtrlDef(Bool(), False)
+    val writeValidDef = CtrlDef(Bool(), False)
       .setWhen(True, Rvi.Sb, Rvi.Sh, Rvi.Sw)
     cs.registerCtrlSignal(writeValidDef)
 

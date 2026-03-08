@@ -24,14 +24,14 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     val immGen = new ImmGenerator
     val regfile = new IntRegfile
 
-    val immSelDef = new CtrlDef(ImmMode(), ImmMode.I)
+    val immSelDef = CtrlDef(ImmMode(), ImmMode.I)
       .setWhen(ImmMode.S, Rvi.instructions.filter(_.fields.contains(Rvi.SImm)))
       .setWhen(ImmMode.B, Rvi.instructions.filter(_.fields.contains(Rvi.BImm)))
       .setWhen(ImmMode.U, Rvi.instructions.filter(_.fields.contains(Rvi.UImm)))
       .setWhen(ImmMode.J, Rvi.instructions.filter(_.fields.contains(Rvi.JImm)))
     registerCtrlSignal(immSelDef)
 
-    val rfWriteEnableDef = new CtrlDef(Bool(), False)
+    val rfWriteEnableDef = CtrlDef(Bool(), False)
       .setWhen(
         True,
         Rvi.instructions.filter(_.fields.contains(Rvi.Rd))
