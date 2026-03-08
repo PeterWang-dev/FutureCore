@@ -10,11 +10,15 @@ module debug_dpi #(
 );
   localparam int GprsWidth = GPR_NUM * GPR_WIDTH;
 
-  import "DPI-C" function void send_regs(input logic [GprsWidth - 1:0] regs);
+  import "DPI-C" function void send_state(
+    input bit [31:0] pc,
+    input bit [31:0] inst,
+    input bit [GprsWidth - 1:0] gprs
+  );
 
-  always @(posedge clk_i) begin
+  always_comb begin
     if (rst_ni) begin
-      send_regs(s_gprs_i);
+      send_state(s_pc_i, s_inst_i, s_gprs_i);
     end
   end
 

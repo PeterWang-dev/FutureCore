@@ -15,5 +15,5 @@ class DebugProbe extends Component {
 
   dbg.io.s.pc_i := io.inPc
   dbg.io.s.inst_i := io.inInst
-  dbg.io.s.gprs_i := io.inGprs.reduce(_ ## _)
+  dbg.io.s.gprs_i := io.inGprs.reverse.reduce(_ ## _) // make
 }
