@@ -11,6 +11,8 @@ import futurecore.execute.ExecutePlugin
 import futurecore.decode.DecodePlugin
 
 class FetchPlugin extends FiberPlugin {
+  import BranchTargeter.BranchMode
+
   val setup = during setup new Area {
     val cs = host[CtrlService]
     val dp = host[DecodePlugin]
@@ -26,30 +28,34 @@ class FetchPlugin extends FiberPlugin {
     val bt = new BranchTargeter
     val im = new InstructionMemory
 
-    val pcWriteDef = new CtrlDef(Bool(), False)
-      .setWhen(True, Rvi.Jal, Rvi.Jalr)
-      .setWhen(True, Rvi.Beq, Rvi.Bge, Rvi.Bgeu, Rvi.Blt, Rvi.Bltu, Rvi.Bne)
-    cs.registerCtrlSignal(pcWriteDef)
+    val branchModeDef = CtrlDef(BranchMode(), BranchMode.PcReletive)
+      .setWhen(BranchMode.Displacement, Rvi.Jalr)
+    cs.registerCtrlSignal(branchModeDef)
 
-    val branchBaseDef = new CtrlDef(Bool(), False)
-      .setWhen(True, Rvi.Jalr)
-    cs.registerCtrlSignal(branchBaseDef)
+    val isUncondDef = CtrlDef(Bool(), False)
+      .setWhen(True, Rvi.Jal, Rvi.Jalr)
+    cs.registerCtrlSignal(isUncondDef)
+
+    val isCondDef = CtrlDef(Bool(), False)
+      .setWhen(True, Rvi.Beq, Rvi.Bge, Rvi.Bgeu, Rvi.Blt, Rvi.Bltu, Rvi.Bne)
+    cs.registerCtrlSignal(isCondDef)
 
     buildBefore.release()
 
     val rs1 = Bits(32 bits)
     val imm = SInt(32 bits)
-    val branchBase = Bool()
-    val pcWrite = Bool()
+    val branchMode = BranchMode()
+    val isCond = Bool()
+    val isUncond = Bool()
     val branchCond = Bool()
 
     bt.io.inPc := pc.io.instAddr
     bt.io.inBaseReg := rs1
     bt.io.inOffsetImm := imm
-    bt.io.enableBase := branchBase
+    bt.io.selMode := branchMode
 
     pc.io.targetAddr := bt.io.outTarget
-    pc.io.directWriteEnable := pcWrite & branchCond
+    pc.io.directWriteEnable := isUncond | (isCond & branchCond)
 
     im.io.instAddr := pc.io.instAddr
   }
@@ -62,8 +68,9 @@ class FetchPlugin extends FiberPlugin {
 
     l.rs1 := dp.getRs1()
     l.imm := dp.getImm()
-    l.branchBase := cs.getCtrlSignal(l.branchBaseDef)
-    l.pcWrite := cs.getCtrlSignal(l.pcWriteDef)
+    l.branchMode := cs.getCtrlSignal(l.branchModeDef)
+    l.isCond := cs.getCtrlSignal(l.isCondDef)
+    l.isUncond := cs.getCtrlSignal(l.isUncondDef)
     l.branchCond := ep.getBranchCond()
   }
 

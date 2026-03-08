@@ -2,21 +2,35 @@ package futurecore.fetch
 
 import spinal.core._
 
+object BranchTargeter {
+  object BranchMode extends SpinalEnum {
+    val PcReletive, Displacement = newElement()
+  }
+}
+
 class BranchTargeter extends Component {
+  import BranchTargeter._
+
   val io = new Bundle {
-    val enableBase = in port Bool()
+    val selMode = in port BranchMode()
     val inBaseReg = in port Bits(32 bits)
     val inPc = in port UInt(32 bits)
     val inOffsetImm = in port SInt(32 bits)
     val outTarget = out port UInt(32 bits)
   }
 
-  val baseU = io.enableBase ? io.inBaseReg.asUInt | io.inPc
+  val base = io.selMode.mux(
+    BranchMode.PcReletive   -> io.inPc,
+    BranchMode.Displacement -> io.inBaseReg.asUInt
+  )
 
-  val targetS = baseU.asSInt + io.inOffsetImm
-  val targetU = targetS.asUInt
+  val targetUnaligned = (base.asSInt + io.inOffsetImm).asUInt
 
   val AlignMask = ~U"32'h1"
+  val targetAligned =
+    (io.selMode === BranchMode.Displacement) ?
+      (targetUnaligned & AlignMask) |
+      targetUnaligned
 
-  io.outTarget := io.enableBase ? (targetU & AlignMask) | targetU
+  io.outTarget := targetAligned
 }
