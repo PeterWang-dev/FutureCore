@@ -65,6 +65,11 @@ class ExecutePlugin extends FiberPlugin {
       .setWhen(AluOp.GreaterEqualUnsigned, Rvi.Bgeu)
     cs.registerCtrlSignal(aluOpDef)
 
+    val memAddrValidDef = CtrlDef(Bool(), False)
+      .setWhen(True, Rvi.Lb, Rvi.Lbu, Rvi.Lh, Rvi.Lhu, Rvi.Lw)
+      .setWhen(True, Rvi.Sb, Rvi.Sh, Rvi.Sw)
+    cs.registerCtrlSignal(memAddrValidDef)
+
     val memAccessDef = CtrlDef(AccessWidth(), AccessWidth.Byte)
       .setWhen(AccessWidth.Half, Rvi.Lh, Rvi.Lhu, Rvi.Sh)
       .setWhen(AccessWidth.Word, Rvi.Lw, Rvi.Sw)
@@ -78,10 +83,6 @@ class ExecutePlugin extends FiberPlugin {
       .setWhen(True, Rvi.Sb, Rvi.Sh, Rvi.Sw)
     cs.registerCtrlSignal(memWriteDef)
 
-    val writeValidDef = CtrlDef(Bool(), False)
-      .setWhen(True, Rvi.Sb, Rvi.Sh, Rvi.Sw)
-    cs.registerCtrlSignal(writeValidDef)
-
     buildBefore.release()
 
     val rs1 = Bits(32 bits)
@@ -92,10 +93,10 @@ class ExecutePlugin extends FiberPlugin {
     val selUp = SrcUpMode()
     val selDown = SrcDownMode()
     val aluOp = AluOp()
+    val memAddrValid = Bool()
     val memAccessWidth = AccessWidth()
     val readSext = Bool()
     val memWrite = Bool()
-    val writeValid = Bool()
 
     src.io.inRs1 := rs1
     src.io.inRs2 := rs2
@@ -110,11 +111,11 @@ class ExecutePlugin extends FiberPlugin {
     alu.io.selOp := aluOp
 
     dm.io.inAddr := alu.io.outRes.asUInt
-    dm.io.inDataWrite := rs2
+    dm.io.validAddr := memAddrValid
     dm.io.selAccessWidth := memAccessWidth
     dm.io.enableReadSext := readSext
     dm.io.enableWrite := memWrite
-    dm.io.validDataWrite := writeValid
+    dm.io.inDataWrite := rs2
   }
 
   val interconnect = during build new Area {
@@ -134,7 +135,7 @@ class ExecutePlugin extends FiberPlugin {
     l.memAccessWidth := cs.getCtrlSignal(l.memAccessDef)
     l.readSext := cs.getCtrlSignal(l.readSextDef)
     l.memWrite := cs.getCtrlSignal(l.memWriteDef)
-    l.writeValid := cs.getCtrlSignal(l.writeValidDef)
+    l.memAddrValid := cs.getCtrlSignal(l.memAddrValidDef)
   }
 
   def getResult(): SInt = logic.get.alu.io.outRes

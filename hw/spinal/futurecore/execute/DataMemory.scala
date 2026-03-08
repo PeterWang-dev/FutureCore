@@ -28,18 +28,18 @@ class DataMemory extends Component {
   val io = new Bundle {
     val selAccessWidth = in port AccessWidth()
     val inAddr = in port UInt(32 bits)
+    val validAddr = in port Bool()
 
     val enableReadSext = in port Bool()
     val outDataRead = out port Bits(32 bits)
 
     val enableWrite = in port Bool()
-    val validDataWrite = in port Bool()
     val inDataWrite = in port Bits(32 bits)
   }
 
   val mem = new ram_dpi
 
-  mem.io.valid := io.validDataWrite
+  mem.io.valid := io.validAddr
   mem.io.raddr := io.inAddr
 
   val memData = mem.io.rdata
