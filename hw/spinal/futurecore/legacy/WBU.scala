@@ -1,6 +1,6 @@
 package futurecore.legacy
 
-import futurecore.ip.blackbox.ebreak_dpi
+import futurecore.ip.blackbox.dpi.ebreak_dpi
 import spinal.core._
 import spinal.lib._
 
@@ -42,8 +42,8 @@ case class WBU() extends Component {
   val ebreak = new ebreak_dpi
   val result = Bits(32 bits)
 
-  ebreak.io.valid := io.ctrl.wbType === WriteBackType.Ebreak
-  ebreak.io.status := io.input.retStatus
+  ebreak.io.s.valid_i := io.ctrl.wbType === WriteBackType.Ebreak
+  ebreak.io.s.status_i := io.input.retStatus
 
   switch(io.ctrl.wbType) {
     is(WriteBackType.Alu) {
