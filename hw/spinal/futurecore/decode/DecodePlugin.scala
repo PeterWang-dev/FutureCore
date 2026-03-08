@@ -34,7 +34,9 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     val rfWriteEnableDef = CtrlDef(Bool(), False)
       .setWhen(
         True,
-        Rvi.instructions.filter(_.fields.contains(Rvi.Rd))
+        Rvi.instructions
+          .filter(_.fields.contains(Rvi.Rd))
+          .filterNot(_ == Rvi.Ebreak)
       )
     registerCtrlSignal(rfWriteEnableDef)
 
@@ -90,6 +92,8 @@ class DecodePlugin extends FiberPlugin with CtrlService {
   def getRs2(): Bits = logic.get.regfile.io.outDataReadB
 
   def getImm(): SInt = logic.get.immGen.io.outImm
+
+  def getReturnStatus(): SInt = logic.get.regfile.io.outSpecialRet.asSInt
 
   def getDbgRegfile(): Vec[Bits] = logic.get.regfile.io.dbgRegisters
 }

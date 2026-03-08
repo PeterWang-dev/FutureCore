@@ -23,20 +23,28 @@ class WritebackPlugin extends FiberPlugin {
     val buildBefore = setup.get.buildBefore
 
     val com = new CommitSelector
+    val ebreak = new EbreakHandler
 
     val commitSrcDef = CtrlDef(CommitSource(), CommitSource.Result)
       .setWhen(CommitSource.Memory, Rvi.Lb, Rvi.Lh, Rvi.Lw, Rvi.Lbu, Rvi.Lhu)
     cs.registerCtrlSignal(commitSrcDef)
+
+    val isEbreakDef = CtrlDef(Bool(), False).setWhen(True, Rvi.Ebreak)
+    cs.registerCtrlSignal(isEbreakDef)
 
     buildBefore.release()
 
     val result = SInt(32 bits)
     val memOut = Bits(32 bits)
     val commitSrc = CommitSource()
+    val isEbreak = Bool()
 
     com.io.inResult := result
     com.io.inMemory := memOut
     com.io.selSource := commitSrc
+
+    ebreak.io.enable := isEbreak
+    ebreak.io.inReturnStatus := result
   }
 
   val interconnect = during build new Area {
@@ -47,6 +55,7 @@ class WritebackPlugin extends FiberPlugin {
     l.result := ep.getResult()
     l.memOut := ep.getMemOut()
     l.commitSrc := cs.getCtrlSignal(l.commitSrcDef)
+    l.isEbreak := cs.getCtrlSignal(l.isEbreakDef)
   }
 
   def getWriteback(): Bits = logic.get.com.io.outCommit

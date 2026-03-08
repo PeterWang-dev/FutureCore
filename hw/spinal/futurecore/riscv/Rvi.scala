@@ -86,6 +86,8 @@ object Rvi extends InstructionSet {
   val Or = TypeR(M"0000000_-----_-----_110_-----_0110011")
   val And = TypeR(M"0000000_-----_-----_111_-----_0110011")
 
+  // ! WARNING: Below instructions are SYSTEM instructions.
+  // !          Should be handled carefully.
   // I-type: Memory Ordering (fm_pred_succ_rs1_000_rd_opcode)
   val Fence = TypeI(M"--------_-----_-----_000_-----_0001111")
   val FenceTso = TypeI(M"1000_0011_0011_-----_000_-----_0001111")
@@ -135,11 +137,11 @@ object Rvi extends InstructionSet {
     Srl,
     Sra,
     Or,
-    And
+    And,
     // Fence,
     // FenceTso,
     // Pause,
     // Ecall,
-    // Ebreak
+    Ebreak
   )
 }

@@ -30,7 +30,7 @@ class ExecutePlugin extends FiberPlugin {
 
     val selUpDef = CtrlDef(SrcUpMode(), SrcUpMode.RegSrcA)
       .setWhen(SrcUpMode.Pc, Rvi.Auipc, Rvi.Jal, Rvi.Jalr)
-      .setWhen(SrcUpMode.Zero, Rvi.Lui)
+      .setWhen(SrcUpMode.Zero, Rvi.Lui, Rvi.Ebreak)
     cs.registerCtrlSignal(selUpDef)
 
     val selDownDef = CtrlDef(SrcDownMode(), SrcDownMode.RegSrcB)
@@ -38,12 +38,15 @@ class ExecutePlugin extends FiberPlugin {
         SrcDownMode.Imm,
         Rvi.instructions
           .filter(_.fields.exists(_.isInstanceOf[Rvi.Imm]))
-          // BImm are not used as ALU does the comparison between Rs1 and Rs2
+          // BImm is not used as ALU does the comparison between Rs1 and Rs2
           .filterNot(_.fields.contains(Rvi.BImm))
           // Imms of Jal and Jalr are not used as ALU is incrementing the PC
           .filterNot(inst => inst == Rvi.Jal || inst == Rvi.Jalr)
+          // IImm of SYSTEM instructions are not used
+          .filterNot(_ == Rvi.Ebreak)
       )
       .setWhen(SrcDownMode.PcIncrement, Rvi.Jal, Rvi.Jalr)
+      .setWhen(SrcDownMode.ReturnStatus, Rvi.Ebreak)
     cs.registerCtrlSignal(selDownDef)
 
     val aluOpDef = CtrlDef(AluOp(), AluOp.Add)
@@ -85,6 +88,7 @@ class ExecutePlugin extends FiberPlugin {
     val rs2 = Bits(32 bits)
     val pc = UInt(32 bits)
     val imm = SInt(32 bits)
+    val ret = SInt(32 bits)
     val selUp = SrcUpMode()
     val selDown = SrcDownMode()
     val aluOp = AluOp()
@@ -97,6 +101,7 @@ class ExecutePlugin extends FiberPlugin {
     src.io.inRs2 := rs2
     src.io.inPc := pc
     src.io.inImm := imm
+    src.io.inRet := ret
     src.io.selUp := selUp
     src.io.selDown := selDown
 
@@ -122,6 +127,7 @@ class ExecutePlugin extends FiberPlugin {
     l.rs2 := dp.getRs2()
     l.pc := fp.getPc()
     l.imm := dp.getImm()
+    l.ret := dp.getReturnStatus()
     l.selUp := cs.getCtrlSignal(l.selUpDef)
     l.selDown := cs.getCtrlSignal(l.selDownDef)
     l.aluOp := cs.getCtrlSignal(l.aluOpDef)

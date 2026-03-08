@@ -8,7 +8,7 @@ object SrcSelector {
   }
 
   object SrcDownMode extends SpinalEnum {
-    val RegSrcB, Imm, PcIncrement = newElement()
+    val RegSrcB, Imm, PcIncrement, ReturnStatus = newElement()
   }
 }
 
@@ -19,6 +19,7 @@ class SrcSelector extends Component {
     val inRs1 = in port Bits(32 bits)
     val inRs2 = in port Bits(32 bits)
     val inImm = in port SInt(32 bits)
+    val inRet = in port SInt(32 bits)
     val inPc = in port UInt(32 bits)
     val selUp = in port SrcUpMode()
     val selDown = in port SrcDownMode()
@@ -33,8 +34,9 @@ class SrcSelector extends Component {
   )
 
   io.outSrcDown := io.selDown.mux(
-    SrcDownMode.RegSrcB     -> io.inRs2.asSInt,
-    SrcDownMode.Imm         -> io.inImm,
-    SrcDownMode.PcIncrement -> S"32'h4"
+    SrcDownMode.RegSrcB      -> io.inRs2.asSInt,
+    SrcDownMode.Imm          -> io.inImm,
+    SrcDownMode.PcIncrement  -> S"32'h4",
+    SrcDownMode.ReturnStatus -> io.inRet
   )
 }
