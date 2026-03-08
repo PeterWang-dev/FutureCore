@@ -9,8 +9,13 @@ import scala.collection.mutable.{Map, ArrayBuffer}
 
 import futurecore.riscv.{Instruction, InstructionSet}
 
+/*
+  Documentations about HardType:
+  https://spinalhdl.github.io/SpinalDoc-RTD/master/SpinalHDL/Other%20language%20features/utils.html#the-safe-way
+ */
+
 object CtrlService {
-  class CtrlDef[T <: BaseType, V](val signalType: T, val default: V) {
+  class CtrlDef[T <: BaseType, V](val signalType: HardType[T], val default: V) {
     private val valueMap = Map[V, ArrayBuffer[Instruction]]()
 
     def setWhen(value: V, insts: Instruction*): this.type = {
@@ -26,8 +31,8 @@ object CtrlService {
     )(implicit d: DummyImplicit): this.type =
       setWhen(value, insts: _*)
 
-    protected[decode] def toDecodingSpec: DecodingSpec[T] = {
-      val spec = new DecodingSpec[T](HardType(signalType))
+    protected[decode] def toDecodingSpec: DecodingSpec[_] = {
+      val spec = new DecodingSpec(signalType)
       spec.setDefault(Masked(default))
       valueMap.foreach { case (signalValue, instructions) =>
         spec.addNeeds(instructions.map(_.toMasked), Masked(signalValue))
@@ -37,8 +42,8 @@ object CtrlService {
   }
 
   object CtrlDef {
-    def apply[T <: BaseType, V <: BaseType](
-        signalType: T,
+    def apply[T <: BaseType, V <: T](
+        signalType: HardType[T],
         default: V
     ): CtrlDef[T, V] =
       new CtrlDef(signalType, default)
