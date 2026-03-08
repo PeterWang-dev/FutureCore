@@ -14,7 +14,7 @@ class Adder extends Component {
     val flagOverflow = out port Bool()
     val flagSign = out port Bool()
     val flagZero = out port Bool()
-    val flagCarry = out port Bool()
+    val flagCarryBorrow = out port Bool()
   }
 
   val aUnsigned = io.inA.asUInt
@@ -34,7 +34,7 @@ class Adder extends Component {
   result := sumWithCarry.resize(32 bits).asSInt
   sign := result.sign
 
-  io.flagCarry := carryIn ^ carryOut
+  io.flagCarryBorrow := carryIn ^ carryOut
   io.flagOverflow := (aSign === bSign) && (sign =/= aSign)
   io.flagSign := sign
   io.flagZero := !result.orR

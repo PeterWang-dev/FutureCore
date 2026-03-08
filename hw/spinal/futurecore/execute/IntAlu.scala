@@ -50,7 +50,7 @@ class IntAlu extends Component {
           Iff A - B needs borrow, A < B.
    */
   val isLessThan = adder.io.flagOverflow ^ adder.io.flagSign
-  val isLessThanUnsigned = !adder.io.flagCarry
+  val isLessThanUnsigned = adder.io.flagCarryBorrow
   val isEqual = adder.io.flagZero
 
   val isGreaterEqual = !isLessThan
