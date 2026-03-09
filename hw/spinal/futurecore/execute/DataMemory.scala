@@ -19,7 +19,6 @@ object DataMemory {
     def half(): Bits = B"8'b0011"
     def word(): Bits = B"8'b1111"
   }
-
 }
 
 class DataMemory extends Component {
