@@ -12,14 +12,14 @@ class BranchTargeter extends Component {
   import BranchTargeter._
 
   val io = new Bundle {
-    val selMode = in port BranchMode()
+    val inSelMode = in port BranchMode()
     val inBaseReg = in port Bits(32 bits)
     val inPc = in port UInt(32 bits)
     val inOffsetImm = in port SInt(32 bits)
     val outTarget = out port UInt(32 bits)
   }
 
-  val base = io.selMode.mux(
+  val base = io.inSelMode.mux(
     BranchMode.PcReletive   -> io.inPc,
     BranchMode.Displacement -> io.inBaseReg.asUInt
   )
@@ -28,7 +28,7 @@ class BranchTargeter extends Component {
 
   val AlignMask = ~U"32'h1"
   val targetAligned =
-    (io.selMode === BranchMode.Displacement) ?
+    (io.inSelMode === BranchMode.Displacement) ?
       (targetUnaligned & AlignMask) |
       targetUnaligned
 

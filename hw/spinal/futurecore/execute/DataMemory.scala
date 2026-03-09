@@ -25,20 +25,20 @@ class DataMemory extends Component {
   import DataMemory._
 
   val io = new Bundle {
-    val selAccessWidth = in port AccessWidth()
+    val inSelAccessWidth = in port AccessWidth()
     val inAddr = in port UInt(32 bits)
-    val validAddr = in port Bool()
+    val inValidAddr = in port Bool()
 
-    val enableReadSext = in port Bool()
+    val inEnableReadSext = in port Bool()
     val outDataRead = out port Bits(32 bits)
 
-    val enableWrite = in port Bool()
+    val inEnableWrite = in port Bool()
     val inDataWrite = in port Bits(32 bits)
   }
 
   val mem = new ram_dpi
 
-  mem.io.valid := io.validAddr
+  mem.io.valid := io.inValidAddr
   mem.io.raddr := io.inAddr
 
   val memData = mem.io.rdata
@@ -47,16 +47,16 @@ class DataMemory extends Component {
   val dataHalfZeroExt = half(memData).resized
   val dataHalfSignExt = half(memData).sext.asBits
 
-  io.outDataRead := io.selAccessWidth.mux(
-    AccessWidth.Byte -> (io.enableReadSext ? dataByteSignExt | dataByteZeroExt),
-    AccessWidth.Half -> (io.enableReadSext ? dataHalfSignExt | dataHalfZeroExt),
+  io.outDataRead := io.inSelAccessWidth.mux(
+    AccessWidth.Byte -> (io.inEnableReadSext ? dataByteSignExt | dataByteZeroExt),
+    AccessWidth.Half -> (io.inEnableReadSext ? dataHalfSignExt | dataHalfZeroExt),
     AccessWidth.Word -> memData
   )
 
-  mem.io.wen := io.enableWrite
+  mem.io.wen := io.inEnableWrite
   mem.io.waddr := io.inAddr
   mem.io.wdata := io.inDataWrite
-  mem.io.wmask := io.selAccessWidth.mux(
+  mem.io.wmask := io.inSelAccessWidth.mux(
     AccessWidth.Byte -> WriteMask.byte(),
     AccessWidth.Half -> WriteMask.half(),
     AccessWidth.Word -> WriteMask.word()

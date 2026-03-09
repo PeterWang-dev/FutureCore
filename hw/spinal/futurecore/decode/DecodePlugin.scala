@@ -60,13 +60,13 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     ctrlArea.instruction := instruction
 
     immGen.io.inInst := instruction
-    immGen.io.selMode := immSel
+    immGen.io.inSelMode := immSel
 
     regfile.io.inAddrReadA := Rvi.Rs1.extract(instruction).asUInt
     regfile.io.inAddrReadB := Rvi.Rs2.extract(instruction).asUInt
     regfile.io.inAddrWrite := Rvi.Rd.extract(instruction).asUInt
     regfile.io.inDataWrite := writebackData
-    regfile.io.enableWrite := rfWriteEnable
+    regfile.io.inEnableWrite := rfWriteEnable
   }
 
   val interconnect = during build new Area {
@@ -95,5 +95,5 @@ class DecodePlugin extends FiberPlugin with CtrlService {
 
   def getReturnStatus(): SInt = logic.get.regfile.io.outSpecialRet.asSInt
 
-  def getDbgRegfile(): Vec[Bits] = logic.get.regfile.io.dbgRegisters
+  def getDbgRegfile(): Vec[Bits] = logic.get.regfile.io.outDbgRegisters
 }

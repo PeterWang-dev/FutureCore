@@ -10,12 +10,12 @@ class IntRegfile extends Component {
     val inAddrReadB = in port UInt(5 bits)
     val outDataReadB = out port Bits(32 bits)
 
-    val enableWrite = in port Bool()
+    val inEnableWrite = in port Bool()
     val inAddrWrite = in port UInt(5 bits)
     val inDataWrite = in port Bits(32 bits)
 
     val outSpecialRet = out port Bits(32 bits)
-    val dbgRegisters = out port Vec(Bits(32 bits), 32)
+    val outDbgRegisters = out port Vec(Bits(32 bits), 32)
   }
 
   val regfile = Mem(Bits(32 bits), 32)
@@ -24,12 +24,12 @@ class IntRegfile extends Component {
   io.outDataReadA := Mux(io.inAddrReadA === 0, B(0), regfile(io.inAddrReadA.resized))
   io.outDataReadB := Mux(io.inAddrReadB === 0, B(0), regfile(io.inAddrReadB.resized))
 
-  when(io.enableWrite && io.inAddrWrite =/= 0) {
+  when(io.inEnableWrite && io.inAddrWrite =/= 0) {
     regfile(io.inAddrWrite.resized) := io.inDataWrite
   }
 
   val returnIndex = U(10, 5 bits)
   io.outSpecialRet := regfile(returnIndex.reversed)
 
-  io.dbgRegisters.zipWithIndex.foreach { case (b, i) => b := regfile(U(i).resized) }
+  io.outDbgRegisters.zipWithIndex.foreach { case (b, i) => b := regfile(U(i).resized) }
 }

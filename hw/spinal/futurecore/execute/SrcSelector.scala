@@ -21,19 +21,19 @@ class SrcSelector extends Component {
     val inImm = in port SInt(32 bits)
     val inRet = in port SInt(32 bits)
     val inPc = in port UInt(32 bits)
-    val selUp = in port SrcUpMode()
-    val selDown = in port SrcDownMode()
+    val inSelUp = in port SrcUpMode()
+    val inSelDown = in port SrcDownMode()
     val outSrcUp = out port SInt(32 bits)
     val outSrcDown = out port SInt(32 bits)
   }
 
-  io.outSrcUp := io.selUp.mux(
+  io.outSrcUp := io.inSelUp.mux(
     SrcUpMode.RegSrcA -> io.inRs1.asSInt,
     SrcUpMode.Pc      -> io.inPc.asSInt,
     SrcUpMode.Zero    -> S"32'b0"
   )
 
-  io.outSrcDown := io.selDown.mux(
+  io.outSrcDown := io.inSelDown.mux(
     SrcDownMode.RegSrcB      -> io.inRs2.asSInt,
     SrcDownMode.Imm          -> io.inImm,
     SrcDownMode.PcIncrement  -> S"32'h4",

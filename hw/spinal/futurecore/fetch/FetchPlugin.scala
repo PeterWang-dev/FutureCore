@@ -49,15 +49,15 @@ class FetchPlugin extends FiberPlugin {
     val isUncond = Bool()
     val branchCond = Bool()
 
-    bt.io.inPc := pc.io.instAddr
+    bt.io.inPc := pc.io.outInstAddr
     bt.io.inBaseReg := rs1
     bt.io.inOffsetImm := imm
-    bt.io.selMode := branchMode
+    bt.io.inSelMode := branchMode
 
-    pc.io.targetAddr := bt.io.outTarget
-    pc.io.directWriteEnable := isUncond | (isCond & branchCond)
+    pc.io.inTargetAddr := bt.io.outTarget
+    pc.io.inDirectWriteEnable := isUncond | (isCond & branchCond)
 
-    im.io.instAddr := pc.io.instAddr
+    im.io.inInstAddr := pc.io.outInstAddr
   }
 
   val interconnect = during build new Area {
@@ -74,7 +74,7 @@ class FetchPlugin extends FiberPlugin {
     l.branchCond := ep.getBranchCond()
   }
 
-  def getPc(): UInt = logic.get.pc.io.instAddr
+  def getPc(): UInt = logic.get.pc.io.outInstAddr
 
-  def getInstruction(): Bits = logic.get.im.io.inst
+  def getInstruction(): Bits = logic.get.im.io.outInst
 }

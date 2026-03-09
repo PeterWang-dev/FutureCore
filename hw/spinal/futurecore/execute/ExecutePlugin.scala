@@ -103,18 +103,18 @@ class ExecutePlugin extends FiberPlugin {
     src.io.inPc := pc
     src.io.inImm := imm
     src.io.inRet := ret
-    src.io.selUp := selUp
-    src.io.selDown := selDown
+    src.io.inSelUp := selUp
+    src.io.inSelDown := selDown
 
     alu.io.inA := src.io.outSrcUp
     alu.io.inB := src.io.outSrcDown
-    alu.io.selOp := aluOp
+    alu.io.inSelOp := aluOp
 
     dm.io.inAddr := alu.io.outRes.asUInt
-    dm.io.validAddr := memAddrValid
-    dm.io.selAccessWidth := memAccessWidth
-    dm.io.enableReadSext := readSext
-    dm.io.enableWrite := memWrite
+    dm.io.inValidAddr := memAddrValid
+    dm.io.inSelAccessWidth := memAccessWidth
+    dm.io.inEnableReadSext := readSext
+    dm.io.inEnableWrite := memWrite
     dm.io.inDataWrite := rs2
   }
 

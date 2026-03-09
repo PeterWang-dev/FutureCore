@@ -41,9 +41,9 @@ class WritebackPlugin extends FiberPlugin {
 
     com.io.inResult := result
     com.io.inMemory := memOut
-    com.io.selSource := commitSrc
+    com.io.inSelSource := commitSrc
 
-    ebreak.io.enable := isEbreak
+    ebreak.io.inEnable := isEbreak
     ebreak.io.inReturnStatus := result
   }
 

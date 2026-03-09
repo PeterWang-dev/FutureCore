@@ -20,7 +20,7 @@ class IntAlu extends Component {
   val io = new Bundle {
     val inA = in port SInt(32 bits)
     val inB = in port SInt(32 bits)
-    val selOp = in port AluOp()
+    val inSelOp = in port AluOp()
     val outRes = out port SInt(32 bits)
   }
 
@@ -31,8 +31,8 @@ class IntAlu extends Component {
   val adder = new Adder
 
   adder.io.inA := inA
-  adder.io.inB := Mux(io.selOp === AluOp.Add, inB, ~inB)
-  adder.io.inC := (io.selOp =/= AluOp.Add)
+  adder.io.inB := Mux(io.inSelOp === AluOp.Add, inB, ~inB)
+  adder.io.inC := (io.inSelOp =/= AluOp.Add)
 
   /*
     Consider situations when A < B:
@@ -72,7 +72,7 @@ class IntAlu extends Component {
   val one = S(1, 32 bits)
   val zero = S(0, 32 bits)
 
-  io.outRes := io.selOp.mux(
+  io.outRes := io.inSelOp.mux(
     AluOp.Add                  -> adderResult,
     AluOp.Sub                  -> adderResult,
     AluOp.Xor                  -> xorResult,

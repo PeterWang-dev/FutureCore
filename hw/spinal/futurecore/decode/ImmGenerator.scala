@@ -16,7 +16,7 @@ class ImmGenerator extends Component {
 
   val io = new Bundle {
     val inInst = in port Bits(32 bits)
-    val selMode = in port ImmMode()
+    val inSelMode = in port ImmMode()
     val outImm = out port SInt(32 bits)
   }
 
@@ -29,7 +29,7 @@ class ImmGenerator extends Component {
   val jImm = (JImm.extract(inst) ## U"1'b0").sext
 
   // Select immediate based on mode
-  io.outImm := io.selMode.mux(
+  io.outImm := io.inSelMode.mux(
     ImmMode.I -> iImm,
     ImmMode.S -> sImm,
     ImmMode.B -> bImm,

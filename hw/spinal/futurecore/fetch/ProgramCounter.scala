@@ -6,9 +6,9 @@ import spinal.lib.fsm._
 
 class ProgramCounter(resetVector: BigInt) extends Component {
   val io = new Bundle {
-    val directWriteEnable = in port Bool()
-    val targetAddr = in port UInt(32 bits)
-    val instAddr = out port UInt(32 bits)
+    val inDirectWriteEnable = in port Bool()
+    val inTargetAddr = in port UInt(32 bits)
+    val outInstAddr = out port UInt(32 bits)
   }
 
   val pcReg = Reg(UInt(32 bits))
@@ -25,9 +25,9 @@ class ProgramCounter(resetVector: BigInt) extends Component {
       }
 
     gen.whenIsActive {
-      pcReg := Mux(io.directWriteEnable, io.targetAddr, pcNeigh)
+      pcReg := Mux(io.inDirectWriteEnable, io.inTargetAddr, pcNeigh)
     }
   }
 
-  io.instAddr := pcReg
+  io.outInstAddr := pcReg
 }

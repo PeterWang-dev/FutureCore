@@ -11,7 +11,7 @@ class DebugPlugin extends FiberPlugin {
     val fp = host[FetchPlugin]
     val dp = host[DecodePlugin]
   }
-  
+
   val logic = during build new Area {
     val probe = new DebugProbe
   }
