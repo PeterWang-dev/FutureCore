@@ -28,8 +28,9 @@ class IntRegfile extends Component {
     regfile(io.inAddrWrite.resized) := io.inDataWrite
   }
 
+  // Return value is conventionally stored in x10 (a0)
   val returnIndex = U(10, 5 bits)
-  io.outSpecialRet := regfile(returnIndex.reversed)
+  io.outSpecialRet := regfile(returnIndex.resized)
 
   io.outDbgRegisters.zipWithIndex.foreach { case (b, i) => b := regfile(U(i).resized) }
 }
