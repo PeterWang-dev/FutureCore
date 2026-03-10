@@ -15,5 +15,6 @@ class DebugProbe extends Component {
 
   dbg.io.s.pc_i := io.inPc
   dbg.io.s.inst_i := io.inInst
-  dbg.io.s.gprs_i := io.inGprs.reverse.reduce(_ ## _) // make
+  // Reverse registers to make the unified signal little-endian to pass legally
+  dbg.io.s.gprs_i := io.inGprs.reverse.reduce(_ ## _)
 }
