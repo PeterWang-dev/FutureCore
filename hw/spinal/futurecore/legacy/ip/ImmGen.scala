@@ -1,7 +1,6 @@
-package futurecore.lib
+package futurecore.legacy.ip
 
 import spinal.core._
-import futurecore.Config
 
 object ImmGen {
   object ImmType extends SpinalEnum {

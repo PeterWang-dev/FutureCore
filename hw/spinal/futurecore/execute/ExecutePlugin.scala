@@ -1,0 +1,146 @@
+package futurecore.execute
+
+import spinal.core._
+import spinal.lib.misc.plugin._
+
+import futurecore.fetch.FetchPlugin
+import futurecore.decode.{CtrlService, DecodePlugin}
+import futurecore.decode.CtrlService.CtrlDef
+import futurecore.riscv.Rvi
+
+class ExecutePlugin extends FiberPlugin {
+  import SrcSelector.{SrcUpMode, SrcDownMode}
+  import IntAlu.AluOp
+  import DataMemory.AccessWidth
+
+  val setup = during setup new Area {
+    val fp = host[FetchPlugin]
+    val dp = host[DecodePlugin]
+    val cs = host[CtrlService]
+    val buildBefore = retains(cs.ctrlLock)
+  }
+
+  val logic = during build new Area {
+    val cs = setup.get.cs
+    val buildBefore = setup.get.buildBefore
+
+    val src = new SrcSelector
+    val alu = new IntAlu
+    val dm = new DataMemory
+
+    val selUpDef = CtrlDef(SrcUpMode(), SrcUpMode.RegSrcA)
+      .setWhen(SrcUpMode.Pc, Rvi.Auipc, Rvi.Jal, Rvi.Jalr)
+      .setWhen(SrcUpMode.Zero, Rvi.Lui, Rvi.Ebreak)
+    cs.registerCtrlSignal(selUpDef)
+
+    val selDownDef = CtrlDef(SrcDownMode(), SrcDownMode.RegSrcB)
+      .setWhen(
+        SrcDownMode.Imm,
+        Rvi.instructions
+          .filter(_.fields.exists(_.isInstanceOf[Rvi.Imm]))
+          // BImm is not used as ALU does the comparison between Rs1 and Rs2
+          .filterNot(_.fields.contains(Rvi.BImm))
+          // Imms of Jal and Jalr are not used as ALU is incrementing the PC
+          .filterNot(inst => inst == Rvi.Jal || inst == Rvi.Jalr)
+          // IImm of SYSTEM instructions are not used
+          .filterNot(_ == Rvi.Ebreak)
+      )
+      .setWhen(SrcDownMode.PcIncrement, Rvi.Jal, Rvi.Jalr)
+      .setWhen(SrcDownMode.ReturnStatus, Rvi.Ebreak)
+    cs.registerCtrlSignal(selDownDef)
+
+    val aluOpDef = CtrlDef(AluOp(), AluOp.Add)
+      .setWhen(AluOp.Sub, Rvi.Sub)
+      .setWhen(AluOp.Xor, Rvi.Xori, Rvi.Xor)
+      .setWhen(AluOp.Or, Rvi.Ori, Rvi.Or)
+      .setWhen(AluOp.And, Rvi.Andi, Rvi.And)
+      .setWhen(AluOp.ShiftLeftLogic, Rvi.Slli, Rvi.Sll)
+      .setWhen(AluOp.ShiftRightLogic, Rvi.Srli, Rvi.Srl)
+      .setWhen(AluOp.ShiftRightArith, Rvi.Sra, Rvi.Srai)
+      .setWhen(AluOp.EqualTo, Rvi.Beq)
+      .setWhen(AluOp.NotEqual, Rvi.Bne)
+      .setWhen(AluOp.LessThan, Rvi.Blt, Rvi.Slti, Rvi.Slt)
+      .setWhen(AluOp.GreaterEqual, Rvi.Bge)
+      .setWhen(AluOp.LessThanUnsigned, Rvi.Bltu, Rvi.Sltiu, Rvi.Sltu)
+      .setWhen(AluOp.GreaterEqualUnsigned, Rvi.Bgeu)
+    cs.registerCtrlSignal(aluOpDef)
+
+    val memAddrValidDef = CtrlDef(Bool(), False)
+      .setWhen(True, Rvi.Lb, Rvi.Lbu, Rvi.Lh, Rvi.Lhu, Rvi.Lw)
+      .setWhen(True, Rvi.Sb, Rvi.Sh, Rvi.Sw)
+    cs.registerCtrlSignal(memAddrValidDef)
+
+    val memAccessDef = CtrlDef(AccessWidth(), AccessWidth.Byte)
+      .setWhen(AccessWidth.Half, Rvi.Lh, Rvi.Lhu, Rvi.Sh)
+      .setWhen(AccessWidth.Word, Rvi.Lw, Rvi.Sw)
+    cs.registerCtrlSignal(memAccessDef)
+
+    val readSextDef = CtrlDef(Bool(), True)
+      .setWhen(False, Rvi.Lbu, Rvi.Lhu)
+    cs.registerCtrlSignal(readSextDef)
+
+    val memWriteDef = CtrlDef(Bool(), False)
+      .setWhen(True, Rvi.Sb, Rvi.Sh, Rvi.Sw)
+    cs.registerCtrlSignal(memWriteDef)
+
+    buildBefore.release()
+
+    val rs1 = Bits(32 bits)
+    val rs2 = Bits(32 bits)
+    val pc = UInt(32 bits)
+    val imm = SInt(32 bits)
+    val ret = SInt(32 bits)
+    val selUp = SrcUpMode()
+    val selDown = SrcDownMode()
+    val aluOp = AluOp()
+    val memAddrValid = Bool()
+    val memAccessWidth = AccessWidth()
+    val readSext = Bool()
+    val memWrite = Bool()
+
+    src.io.inRs1 := rs1
+    src.io.inRs2 := rs2
+    src.io.inPc := pc
+    src.io.inImm := imm
+    src.io.inRet := ret
+    src.io.inSelUp := selUp
+    src.io.inSelDown := selDown
+
+    alu.io.inA := src.io.outSrcUp
+    alu.io.inB := src.io.outSrcDown
+    alu.io.inSelOp := aluOp
+
+    dm.io.inAddr := alu.io.outRes.asUInt
+    dm.io.inValidAddr := memAddrValid
+    dm.io.inSelAccessWidth := memAccessWidth
+    dm.io.inEnableReadSext := readSext
+    dm.io.inEnableWrite := memWrite
+    dm.io.inDataWrite := rs2
+  }
+
+  val interconnect = during build new Area {
+    val fp = setup.get.fp
+    val dp = setup.get.dp
+    val cs = setup.get.cs
+    val l = logic.get
+
+    l.rs1 := dp.getRs1()
+    l.rs2 := dp.getRs2()
+    l.pc := fp.getPc()
+    l.imm := dp.getImm()
+    l.ret := dp.getReturnStatus()
+    l.selUp := cs.getCtrlSignal(l.selUpDef)
+    l.selDown := cs.getCtrlSignal(l.selDownDef)
+    l.aluOp := cs.getCtrlSignal(l.aluOpDef)
+    l.memAccessWidth := cs.getCtrlSignal(l.memAccessDef)
+    l.readSext := cs.getCtrlSignal(l.readSextDef)
+    l.memWrite := cs.getCtrlSignal(l.memWriteDef)
+    l.memAddrValid := cs.getCtrlSignal(l.memAddrValidDef)
+  }
+
+  def getResult(): SInt = logic.get.alu.io.outRes
+
+  def getBranchCond(): Bool = logic.get.alu.io.outRes.lsb
+
+  def getMemOut(): Bits = logic.get.dm.io.outDataRead
+}

@@ -124,6 +124,7 @@ pub extern "C" fn ebreak(status: u32) {
 }
 
 #[unsafe(no_mangle)]
+#[deprecated(note = "regs_dpi at hw becomes a legacy")]
 pub extern "C" fn get_regs(gpr: *const u64) {
     let gpr = unsafe {
         slice::from_raw_parts(gpr, 33)
@@ -136,6 +137,21 @@ pub extern "C" fn get_regs(gpr: *const u64) {
         .expect("DPI-REGISTERS not initialized")
         .borrow_mut();
     *regs = Registers::try_from(gpr.as_slice())
+        .expect("Failed to convert raw registers to rv32i::Registers");
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn send_state(pc: *const u32, _inst: *const u32, gprs: *const u32) {
+    let gprs = unsafe { slice::from_raw_parts(gprs, 32) };
+    let pc = unsafe { *pc };
+
+    let gpr_pc: Vec<u32> = [gprs, &[pc]].concat();
+
+    let mut regs = REGISTERS
+        .get()
+        .expect("DPI-REGISTERS not initialized")
+        .borrow_mut();
+    *regs = Registers::try_from(gpr_pc.as_slice())
         .expect("Failed to convert raw registers to rv32i::Registers");
 }
 

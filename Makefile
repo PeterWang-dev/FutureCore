@@ -10,6 +10,11 @@ verilog:
 	mkdir -p $(GEN_DIR)
 	TARGET_DIR=$(GEN_DIR) mill -i $(PRJ).runMain $(PRJ).Elaborate
 
+verilog-legacy:
+	$(call git_commit, "generate verilog")
+	mkdir -p $(GEN_DIR)
+	TARGET_DIR=$(GEN_DIR) mill -i $(PRJ).runMain $(PRJ).legacy.Elaborate
+
 sim:
 	$(call git_commit, "sim RTL")
 	make -C $(SIM_DIR) run ARGS="$(ARGS)" IMG=$(IMG)

@@ -1,6 +1,6 @@
-package futurecore
+package futurecore.legacy
 
-import futurecore.lib.Alu
+import futurecore.legacy.ip.Alu
 import spinal.core._
 import spinal.lib._
 

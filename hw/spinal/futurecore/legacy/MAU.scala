@@ -1,8 +1,8 @@
-package futurecore
+package futurecore.legacy
 
 import spinal.core._
 import spinal.lib._
-import futurecore.blackbox.ram_dpi
+import futurecore.ip.blackbox.ram_dpi
 
 object MAU {
   object AccessWidth extends SpinalEnum {
