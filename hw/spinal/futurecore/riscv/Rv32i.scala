@@ -3,7 +3,7 @@ package futurecore.riscv
 import spinal.core._
 
 /** RV32I Base Instruction Set Dinition */
-object Rvi extends InstructionSet {
+object Rv32i extends InstructionSet {
   object Opcode extends BitField(6 downto 0)
   object Rd extends BitField(11 downto 7)
   object Funct3 extends BitField(14 downto 12)
@@ -12,7 +12,7 @@ object Rvi extends InstructionSet {
   object Funct7 extends BitField(31 downto 25)
 
   // Immediate Definitions (Little Endian)
-  class Imm(r: Range*) extends BitField(r: _*)
+  abstract class Imm(r: Range*) extends BitField(r: _*)
   // I-type immediate: single contiguous range [31:20]
   object IImm extends Imm(31 downto 20)
   // S-type immediate: distributed across two ranges [31:25|11:7]

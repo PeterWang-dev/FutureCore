@@ -4,7 +4,7 @@ import spinal.core._
 import spinal.lib.misc.plugin._
 import spinal.lib.BinaryBuilder2
 
-import futurecore.riscv.Rvi
+import futurecore.riscv.Rv32i
 import futurecore.decode.CtrlService
 import futurecore.decode.CtrlService.CtrlDef
 import futurecore.execute.ExecutePlugin
@@ -29,15 +29,15 @@ class FetchPlugin extends FiberPlugin {
     val im = new InstructionMemory
 
     val branchModeDef = CtrlDef(BranchMode(), BranchMode.PcReletive)
-      .setWhen(BranchMode.Displacement, Rvi.Jalr)
+      .setWhen(BranchMode.Displacement, Rv32i.Jalr)
     cs.registerCtrlSignal(branchModeDef)
 
     val isUncondDef = CtrlDef(Bool(), False)
-      .setWhen(True, Rvi.Jal, Rvi.Jalr)
+      .setWhen(True, Rv32i.Jal, Rv32i.Jalr)
     cs.registerCtrlSignal(isUncondDef)
 
     val isCondDef = CtrlDef(Bool(), False)
-      .setWhen(True, Rvi.Beq, Rvi.Bge, Rvi.Bgeu, Rvi.Blt, Rvi.Bltu, Rvi.Bne)
+      .setWhen(True, Rv32i.Beq, Rv32i.Bge, Rv32i.Bgeu, Rv32i.Blt, Rv32i.Bltu, Rv32i.Bne)
     cs.registerCtrlSignal(isCondDef)
 
     buildBefore.release()

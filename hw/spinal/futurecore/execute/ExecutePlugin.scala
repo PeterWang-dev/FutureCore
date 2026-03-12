@@ -6,7 +6,7 @@ import spinal.lib.misc.plugin._
 import futurecore.fetch.FetchPlugin
 import futurecore.decode.{CtrlService, DecodePlugin}
 import futurecore.decode.CtrlService.CtrlDef
-import futurecore.riscv.Rvi
+import futurecore.riscv.Rv32i
 
 class ExecutePlugin extends FiberPlugin {
   import SrcSelector.{SrcUpMode, SrcDownMode}
@@ -29,58 +29,58 @@ class ExecutePlugin extends FiberPlugin {
     val dm = new DataMemory
 
     val selUpDef = CtrlDef(SrcUpMode(), SrcUpMode.RegSrcA)
-      .setWhen(SrcUpMode.Pc, Rvi.Auipc, Rvi.Jal, Rvi.Jalr)
-      .setWhen(SrcUpMode.Zero, Rvi.Lui, Rvi.Ebreak)
+      .setWhen(SrcUpMode.Pc, Rv32i.Auipc, Rv32i.Jal, Rv32i.Jalr)
+      .setWhen(SrcUpMode.Zero, Rv32i.Lui, Rv32i.Ebreak)
     cs.registerCtrlSignal(selUpDef)
 
     val selDownDef = CtrlDef(SrcDownMode(), SrcDownMode.RegSrcB)
       .setWhen(
         SrcDownMode.Imm,
-        Rvi.instructions
-          .filter(_.fields.exists(_.isInstanceOf[Rvi.Imm]))
+        Rv32i.instructions
+          .filter(_.fields.exists(_.isInstanceOf[Rv32i.Imm]))
           // BImm is not used as ALU does the comparison between Rs1 and Rs2
-          .filterNot(_.fields.contains(Rvi.BImm))
+          .filterNot(_.fields.contains(Rv32i.BImm))
           // Imms of Jal and Jalr are not used as ALU is incrementing the PC
-          .filterNot(inst => inst == Rvi.Jal || inst == Rvi.Jalr)
+          .filterNot(inst => inst == Rv32i.Jal || inst == Rv32i.Jalr)
           // IImm of SYSTEM instructions are not used
-          .filterNot(_ == Rvi.Ebreak)
+          .filterNot(_ == Rv32i.Ebreak)
       )
-      .setWhen(SrcDownMode.PcIncrement, Rvi.Jal, Rvi.Jalr)
-      .setWhen(SrcDownMode.ReturnStatus, Rvi.Ebreak)
+      .setWhen(SrcDownMode.PcIncrement, Rv32i.Jal, Rv32i.Jalr)
+      .setWhen(SrcDownMode.ReturnStatus, Rv32i.Ebreak)
     cs.registerCtrlSignal(selDownDef)
 
     val aluOpDef = CtrlDef(AluOp(), AluOp.Add)
-      .setWhen(AluOp.Sub, Rvi.Sub)
-      .setWhen(AluOp.Xor, Rvi.Xori, Rvi.Xor)
-      .setWhen(AluOp.Or, Rvi.Ori, Rvi.Or)
-      .setWhen(AluOp.And, Rvi.Andi, Rvi.And)
-      .setWhen(AluOp.ShiftLeftLogic, Rvi.Slli, Rvi.Sll)
-      .setWhen(AluOp.ShiftRightLogic, Rvi.Srli, Rvi.Srl)
-      .setWhen(AluOp.ShiftRightArith, Rvi.Sra, Rvi.Srai)
-      .setWhen(AluOp.EqualTo, Rvi.Beq)
-      .setWhen(AluOp.NotEqual, Rvi.Bne)
-      .setWhen(AluOp.LessThan, Rvi.Blt, Rvi.Slti, Rvi.Slt)
-      .setWhen(AluOp.GreaterEqual, Rvi.Bge)
-      .setWhen(AluOp.LessThanUnsigned, Rvi.Bltu, Rvi.Sltiu, Rvi.Sltu)
-      .setWhen(AluOp.GreaterEqualUnsigned, Rvi.Bgeu)
+      .setWhen(AluOp.Sub, Rv32i.Sub)
+      .setWhen(AluOp.Xor, Rv32i.Xori, Rv32i.Xor)
+      .setWhen(AluOp.Or, Rv32i.Ori, Rv32i.Or)
+      .setWhen(AluOp.And, Rv32i.Andi, Rv32i.And)
+      .setWhen(AluOp.ShiftLeftLogic, Rv32i.Slli, Rv32i.Sll)
+      .setWhen(AluOp.ShiftRightLogic, Rv32i.Srli, Rv32i.Srl)
+      .setWhen(AluOp.ShiftRightArith, Rv32i.Sra, Rv32i.Srai)
+      .setWhen(AluOp.EqualTo, Rv32i.Beq)
+      .setWhen(AluOp.NotEqual, Rv32i.Bne)
+      .setWhen(AluOp.LessThan, Rv32i.Blt, Rv32i.Slti, Rv32i.Slt)
+      .setWhen(AluOp.GreaterEqual, Rv32i.Bge)
+      .setWhen(AluOp.LessThanUnsigned, Rv32i.Bltu, Rv32i.Sltiu, Rv32i.Sltu)
+      .setWhen(AluOp.GreaterEqualUnsigned, Rv32i.Bgeu)
     cs.registerCtrlSignal(aluOpDef)
 
     val memAddrValidDef = CtrlDef(Bool(), False)
-      .setWhen(True, Rvi.Lb, Rvi.Lbu, Rvi.Lh, Rvi.Lhu, Rvi.Lw)
-      .setWhen(True, Rvi.Sb, Rvi.Sh, Rvi.Sw)
+      .setWhen(True, Rv32i.Lb, Rv32i.Lbu, Rv32i.Lh, Rv32i.Lhu, Rv32i.Lw)
+      .setWhen(True, Rv32i.Sb, Rv32i.Sh, Rv32i.Sw)
     cs.registerCtrlSignal(memAddrValidDef)
 
     val memAccessDef = CtrlDef(AccessWidth(), AccessWidth.Byte)
-      .setWhen(AccessWidth.Half, Rvi.Lh, Rvi.Lhu, Rvi.Sh)
-      .setWhen(AccessWidth.Word, Rvi.Lw, Rvi.Sw)
+      .setWhen(AccessWidth.Half, Rv32i.Lh, Rv32i.Lhu, Rv32i.Sh)
+      .setWhen(AccessWidth.Word, Rv32i.Lw, Rv32i.Sw)
     cs.registerCtrlSignal(memAccessDef)
 
     val readSextDef = CtrlDef(Bool(), True)
-      .setWhen(False, Rvi.Lbu, Rvi.Lhu)
+      .setWhen(False, Rv32i.Lbu, Rv32i.Lhu)
     cs.registerCtrlSignal(readSextDef)
 
     val memWriteDef = CtrlDef(Bool(), False)
-      .setWhen(True, Rvi.Sb, Rvi.Sh, Rvi.Sw)
+      .setWhen(True, Rv32i.Sb, Rv32i.Sh, Rv32i.Sw)
     cs.registerCtrlSignal(memWriteDef)
 
     buildBefore.release()

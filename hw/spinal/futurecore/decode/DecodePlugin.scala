@@ -7,7 +7,7 @@ import spinal.lib.misc.plugin.FiberPlugin
 
 import scala.collection.mutable.Map
 
-import futurecore.riscv.Rvi
+import futurecore.riscv.Rv32i
 import futurecore.fetch.FetchPlugin
 import futurecore.writeback.WritebackPlugin
 
@@ -25,18 +25,18 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     val regfile = new IntRegfile
 
     val immSelDef = CtrlDef(ImmMode(), ImmMode.I)
-      .setWhen(ImmMode.S, Rvi.instructions.filter(_.fields.contains(Rvi.SImm)))
-      .setWhen(ImmMode.B, Rvi.instructions.filter(_.fields.contains(Rvi.BImm)))
-      .setWhen(ImmMode.U, Rvi.instructions.filter(_.fields.contains(Rvi.UImm)))
-      .setWhen(ImmMode.J, Rvi.instructions.filter(_.fields.contains(Rvi.JImm)))
+      .setWhen(ImmMode.S, Rv32i.instructions.filter(_.fields.contains(Rv32i.SImm)))
+      .setWhen(ImmMode.B, Rv32i.instructions.filter(_.fields.contains(Rv32i.BImm)))
+      .setWhen(ImmMode.U, Rv32i.instructions.filter(_.fields.contains(Rv32i.UImm)))
+      .setWhen(ImmMode.J, Rv32i.instructions.filter(_.fields.contains(Rv32i.JImm)))
     registerCtrlSignal(immSelDef)
 
     val rfWriteEnableDef = CtrlDef(Bool(), False)
       .setWhen(
         True,
-        Rvi.instructions
-          .filter(_.fields.contains(Rvi.Rd))
-          .filterNot(_ == Rvi.Ebreak)
+        Rv32i.instructions
+          .filter(_.fields.contains(Rv32i.Rd))
+          .filterNot(_ == Rv32i.Ebreak)
       )
     registerCtrlSignal(rfWriteEnableDef)
 
@@ -47,7 +47,7 @@ class DecodePlugin extends FiberPlugin with CtrlService {
 
       val map = ctrlSignals.map { ctrlDef =>
         val spec = ctrlDef.toDecodingSpec
-        val signal = spec.build(instruction, Rvi.instructions.map(_.toMasked))
+        val signal = spec.build(instruction, Rv32i.instructions.map(_.toMasked))
         ctrlDef -> signal
       }.toMap
     }
@@ -62,9 +62,9 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     immGen.io.inInst := instruction
     immGen.io.inSelMode := immSel
 
-    regfile.io.inAddrReadA := Rvi.Rs1.extract(instruction).asUInt
-    regfile.io.inAddrReadB := Rvi.Rs2.extract(instruction).asUInt
-    regfile.io.inAddrWrite := Rvi.Rd.extract(instruction).asUInt
+    regfile.io.inAddrReadA := Rv32i.Rs1.extract(instruction).asUInt
+    regfile.io.inAddrReadB := Rv32i.Rs2.extract(instruction).asUInt
+    regfile.io.inAddrWrite := Rv32i.Rd.extract(instruction).asUInt
     regfile.io.inDataWrite := writebackData
     regfile.io.inEnableWrite := rfWriteEnable
   }

@@ -6,7 +6,7 @@ import spinal.lib.misc.plugin.FiberPlugin
 
 import futurecore.decode.CtrlService
 import futurecore.decode.CtrlService.CtrlDef
-import futurecore.riscv.Rvi
+import futurecore.riscv.Rv32i
 import futurecore.execute.ExecutePlugin
 
 class WritebackPlugin extends FiberPlugin {
@@ -26,10 +26,10 @@ class WritebackPlugin extends FiberPlugin {
     val ebreak = new EbreakHandler
 
     val commitSrcDef = CtrlDef(CommitSource(), CommitSource.Result)
-      .setWhen(CommitSource.Memory, Rvi.Lb, Rvi.Lh, Rvi.Lw, Rvi.Lbu, Rvi.Lhu)
+      .setWhen(CommitSource.Memory, Rv32i.Lb, Rv32i.Lh, Rv32i.Lw, Rv32i.Lbu, Rv32i.Lhu)
     cs.registerCtrlSignal(commitSrcDef)
 
-    val isEbreakDef = CtrlDef(Bool(), False).setWhen(True, Rvi.Ebreak)
+    val isEbreakDef = CtrlDef(Bool(), False).setWhen(True, Rv32i.Ebreak)
     cs.registerCtrlSignal(isEbreakDef)
 
     buildBefore.release()
