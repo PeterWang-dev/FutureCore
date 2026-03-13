@@ -14,12 +14,12 @@ object Zicsr extends InstructionSet {
   def TypeR(pat: MaskedLiteral) = Instruction(pat, Seq(Opcode, Rd, Func3, Rs1, Csr))
   def TypeI(pat: MaskedLiteral) = Instruction(pat, Seq(Opcode, Rd, MicroImm, Csr))
 
-  val Csrrw = TypeR(M"--------_-----_-----_001_-----_0001111")
-  val Csrrs = TypeR(M"--------_-----_-----_010_-----_0001111")
-  val Csrrc = TypeR(M"--------_-----_-----_011_-----_0001111")
-  val Csrrwi = TypeI(M"--------_-----_-----_101_-----_0001111")
-  val Csrrsi = TypeI(M"--------_-----_-----_110_-----_0001111")
-  val Csrrci = TypeI(M"--------_-----_-----_111_-----_0001111")
+  val Csrrw = TypeR(M"-------_-----_-----_001_-----_1110011")
+  val Csrrs = TypeR(M"-------_-----_-----_010_-----_1110011")
+  val Csrrc = TypeR(M"-------_-----_-----_011_-----_1110011")
+  val Csrrwi = TypeI(M"------------_-----_101_-----_1110011")
+  val Csrrsi = TypeI(M"------------_-----_110_-----_1110011")
+  val Csrrci = TypeI(M"------------_-----_111_-----_1110011")
 
   override def ident: String = "zicsr"
 
