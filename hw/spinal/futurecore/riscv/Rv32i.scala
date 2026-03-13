@@ -94,13 +94,15 @@ object Rv32i extends InstructionSet {
   val Pause = TypeI(M"0000_0001_0000_-----_000_-----_0001111")
 
   // I-type: Environment (funct12_rs1_000_rd_1110011)
+  // ! WARNING: Ecall & Ebreak are PRIVILEGED related instructions!
+  // !          Refer to Privileged.scala!
   val Ecall = TypeI(M"000000000000_00000_000_00000_1110011")
   val Ebreak = TypeI(M"000000000001_00000_000_00000_1110011")
 
   // InstructionSet trait implementation
   override def ident: String = "rv32i"
 
-  override def instructions: Seq[Instruction] = List(
+  override def instructions: Seq[Instruction] = Seq(
     Lui,
     Auipc,
     Jal,
@@ -141,7 +143,7 @@ object Rv32i extends InstructionSet {
     // Fence,
     // FenceTso,
     // Pause,
-    // Ecall,
+    Ecall,
     Ebreak
   )
 }
