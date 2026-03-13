@@ -7,7 +7,8 @@ import spinal.lib.misc.plugin.FiberPlugin
 
 import scala.collection.mutable.Map
 
-import futurecore.riscv.Rv32i
+import futurecore.Globals.AllInstructions
+import futurecore.riscv.{Rv32i, Zicsr, Privileged}
 import futurecore.fetch.FetchPlugin
 import futurecore.writeback.WritebackPlugin
 
@@ -43,30 +44,32 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     ctrlLock.await()
 
     val ctrlArea = new Area {
-      val instruction = Bits(32 bits)
+      val inst = Bits(32 bits)
 
       val map = ctrlSignals.map { ctrlDef =>
         val spec = ctrlDef.toDecodingSpec
-        val signal = spec.build(instruction, Rv32i.instructions.map(_.toMasked))
+        val signal = spec.build(inst, AllInstructions.map(_.toMasked))
         ctrlDef -> signal
       }.toMap
     }
 
-    val instruction = Bits(32 bits)
+    val inst = Bits(32 bits)
     val writebackData = Bits(32 bits)
     val immSel = ImmMode()
     val rfWriteEnable = Bool()
 
-    ctrlArea.instruction := instruction
+    ctrlArea.inst := inst
 
-    immGen.io.inInst := instruction
+    immGen.io.inInst := inst
     immGen.io.inSelMode := immSel
 
-    regfile.io.inAddrReadA := Rv32i.Rs1.extract(instruction).asUInt
-    regfile.io.inAddrReadB := Rv32i.Rs2.extract(instruction).asUInt
-    regfile.io.inAddrWrite := Rv32i.Rd.extract(instruction).asUInt
+    regfile.io.inAddrReadA := Rv32i.Rs1.extract(inst).asUInt
+    regfile.io.inAddrReadB := Rv32i.Rs2.extract(inst).asUInt
+    regfile.io.inAddrWrite := Rv32i.Rd.extract(inst).asUInt
     regfile.io.inDataWrite := writebackData
     regfile.io.inEnableWrite := rfWriteEnable
+
+    val csrAddr = Zicsr.Csr.extract(inst).asUInt
   }
 
   val interconnect = during build new Area {
@@ -74,7 +77,7 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     val wp = setup.get.wp
     val l = logic.get
 
-    l.instruction := fp.getInstruction()
+    l.inst := fp.getInstruction()
     l.writebackData := wp.getWriteback()
     l.immSel := getCtrlSignal(l.immSelDef)
     l.rfWriteEnable := getCtrlSignal(l.rfWriteEnableDef)
@@ -92,6 +95,8 @@ class DecodePlugin extends FiberPlugin with CtrlService {
   def getRs2(): Bits = logic.get.regfile.io.outDataReadB
 
   def getImm(): SInt = logic.get.immGen.io.outImm
+
+  def getCsrAddr(): UInt = logic.get.csrAddr
 
   def getReturnStatus(): SInt = logic.get.regfile.io.outSpecialRet.asSInt
 
