@@ -6,12 +6,13 @@ import spinal.lib.misc.plugin._
 import futurecore.fetch.FetchPlugin
 import futurecore.decode.{CtrlService, DecodePlugin}
 import futurecore.decode.CtrlService.CtrlDef
-import futurecore.riscv.Rv32i
+import futurecore.riscv.{Rv32i, Zicsr, Privileged}
 
 class ExecutePlugin extends FiberPlugin {
   import SrcSelector.{SrcUpMode, SrcDownMode}
   import IntAlu.AluOp
   import DataMemory.AccessWidth
+  import CsrHandler.{CsrMode, ExceptionType}
 
   val setup = during setup new Area {
     val fp = host[FetchPlugin]
@@ -27,6 +28,7 @@ class ExecutePlugin extends FiberPlugin {
     val src = new SrcSelector
     val alu = new IntAlu
     val dm = new DataMemory
+    val csr = new CsrHandler
 
     val selUpDef = CtrlDef(SrcUpMode(), SrcUpMode.RegSrcA)
       .setWhen(SrcUpMode.Pc, Rv32i.Auipc, Rv32i.Jal, Rv32i.Jalr)
@@ -83,6 +85,21 @@ class ExecutePlugin extends FiberPlugin {
       .setWhen(True, Rv32i.Sb, Rv32i.Sh, Rv32i.Sw)
     cs.registerCtrlSignal(memWriteDef)
 
+    val csrEnableDef = CtrlDef(Bool(), False)
+      .setWhen(True, Zicsr.instructions)
+    cs.registerCtrlSignal(csrEnableDef)
+
+    val csrModeDef = CtrlDef(CsrMode(), CsrMode.Write)
+      .setWhen(CsrMode.Set, Zicsr.Csrrs)
+    cs.registerCtrlSignal(csrModeDef)
+
+    val exceptionEnableDef = CtrlDef(Bool(), False)
+      .setWhen(True, Rv32i.Ecall)
+    cs.registerCtrlSignal(exceptionEnableDef)
+
+    val exceptionTypeDef = CtrlDef(ExceptionType(), ExceptionType.EcallM)
+    cs.registerCtrlSignal(exceptionTypeDef)
+
     buildBefore.release()
 
     val rs1 = Bits(32 bits)
@@ -97,6 +114,11 @@ class ExecutePlugin extends FiberPlugin {
     val memAccessWidth = AccessWidth()
     val readSext = Bool()
     val memWrite = Bool()
+    val csrEnable = Bool()
+    val csrMode = CsrMode()
+    val csrAddr = UInt(12 bits)
+    val exceptionEnable = Bool()
+    val exceptionType = ExceptionType()
 
     src.io.inRs1 := rs1
     src.io.inRs2 := rs2
@@ -116,6 +138,15 @@ class ExecutePlugin extends FiberPlugin {
     dm.io.inEnableReadSext := readSext
     dm.io.inEnableWrite := memWrite
     dm.io.inDataWrite := rs2
+
+    csr.io.inEnableCsr := csrEnable
+    csr.io.inSelCsrMode := csrMode
+    csr.io.inCsrAddr := csrAddr
+    csr.io.inNewVal := rs1
+
+    csr.io.inEnableException := exceptionEnable
+    csr.io.inSelException := exceptionType
+    csr.io.inExceptionPc := pc
   }
 
   val interconnect = during build new Area {
@@ -136,11 +167,22 @@ class ExecutePlugin extends FiberPlugin {
     l.readSext := cs.getCtrlSignal(l.readSextDef)
     l.memWrite := cs.getCtrlSignal(l.memWriteDef)
     l.memAddrValid := cs.getCtrlSignal(l.memAddrValidDef)
+    l.csrEnable := cs.getCtrlSignal(l.csrEnableDef)
+    l.csrMode := cs.getCtrlSignal(l.csrModeDef)
+    l.csrAddr := dp.getCsrAddr()
+    l.exceptionEnable := cs.getCtrlSignal(l.exceptionEnableDef)
+    l.exceptionType := cs.getCtrlSignal(l.exceptionTypeDef)
   }
 
-  def getResult(): SInt = logic.get.alu.io.outRes
+  def getAluResult(): SInt = logic.get.alu.io.outRes
 
   def getBranchCond(): Bool = logic.get.alu.io.outRes.lsb
 
   def getMemOut(): Bits = logic.get.dm.io.outDataRead
+
+  def getCsrValue(): Bits = logic.get.csr.io.outOldVal
+
+  def getTrapVector(): UInt = logic.get.csr.io.outTrapVector
+
+  def getTrapReturn(): UInt = logic.get.csr.io.outReturnPc
 }

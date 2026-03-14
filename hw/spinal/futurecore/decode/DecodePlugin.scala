@@ -39,6 +39,7 @@ class DecodePlugin extends FiberPlugin with CtrlService {
           .filter(_.fields.contains(Rv32i.Rd))
           .filterNot(_ == Rv32i.Ebreak)
       )
+      .setWhen(True, Zicsr.instructions.filter(_.fields.contains(Zicsr.Rd)))
     registerCtrlSignal(rfWriteEnableDef)
 
     ctrlLock.await()
@@ -54,8 +55,8 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     }
 
     val inst = Bits(32 bits)
-    val writebackData = Bits(32 bits)
     val immSel = ImmMode()
+    val writebackData = Bits(32 bits)
     val rfWriteEnable = Bool()
 
     ctrlArea.inst := inst
@@ -66,8 +67,8 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     regfile.io.inAddrReadA := Rv32i.Rs1.extract(inst).asUInt
     regfile.io.inAddrReadB := Rv32i.Rs2.extract(inst).asUInt
     regfile.io.inAddrWrite := Rv32i.Rd.extract(inst).asUInt
-    regfile.io.inDataWrite := writebackData
     regfile.io.inEnableWrite := rfWriteEnable
+    regfile.io.inDataWrite := writebackData
 
     val csrAddr = Zicsr.Csr.extract(inst).asUInt
   }

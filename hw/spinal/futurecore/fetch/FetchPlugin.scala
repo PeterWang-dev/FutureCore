@@ -4,7 +4,7 @@ import spinal.core._
 import spinal.lib.misc.plugin._
 import spinal.lib.BinaryBuilder2
 
-import futurecore.riscv.Rv32i
+import futurecore.riscv.{Rv32i, Privileged}
 import futurecore.decode.CtrlService
 import futurecore.decode.CtrlService.CtrlDef
 import futurecore.execute.ExecutePlugin
@@ -30,10 +30,13 @@ class FetchPlugin extends FiberPlugin {
 
     val branchModeDef = CtrlDef(BranchMode(), BranchMode.PcReletive)
       .setWhen(BranchMode.Displacement, Rv32i.Jalr)
+      .setWhen(BranchMode.Trap, Rv32i.Ecall)
+      .setWhen(BranchMode.TrapReturn, Privileged.Mret)
     cs.registerCtrlSignal(branchModeDef)
 
     val isUncondDef = CtrlDef(Bool(), False)
       .setWhen(True, Rv32i.Jal, Rv32i.Jalr)
+      .setWhen(True, Rv32i.Ecall, Privileged.Mret)
     cs.registerCtrlSignal(isUncondDef)
 
     val isCondDef = CtrlDef(Bool(), False)
@@ -42,16 +45,20 @@ class FetchPlugin extends FiberPlugin {
 
     buildBefore.release()
 
-    val rs1 = Bits(32 bits)
-    val imm = SInt(32 bits)
+    val baseRs1 = Bits(32 bits)
+    val offsetImm = SInt(32 bits)
+    val trapVector = UInt(32 bits)
+    val epc = UInt(32 bits)
     val branchMode = BranchMode()
     val isCond = Bool()
     val isUncond = Bool()
     val branchCond = Bool()
 
     bt.io.inPc := pc.io.outInstAddr
-    bt.io.inBaseReg := rs1
-    bt.io.inOffsetImm := imm
+    bt.io.inBaseReg := baseRs1
+    bt.io.inOffsetImm := offsetImm
+    bt.io.inTrap := trapVector
+    bt.io.inEpc := epc
     bt.io.inSelMode := branchMode
 
     pc.io.inTargetAddr := bt.io.outTarget
@@ -66,8 +73,10 @@ class FetchPlugin extends FiberPlugin {
     val ep = setup.get.ep
     val l = logic.get
 
-    l.rs1 := dp.getRs1()
-    l.imm := dp.getImm()
+    l.baseRs1 := dp.getRs1()
+    l.offsetImm := dp.getImm()
+    l.trapVector := ep.getTrapVector()
+    l.epc := ep.getTrapReturn()
     l.branchMode := cs.getCtrlSignal(l.branchModeDef)
     l.isCond := cs.getCtrlSignal(l.isCondDef)
     l.isUncond := cs.getCtrlSignal(l.isUncondDef)
