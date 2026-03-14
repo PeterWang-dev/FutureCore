@@ -185,4 +185,12 @@ class ExecutePlugin extends FiberPlugin {
   def getTrapVector(): UInt = logic.get.csr.io.outTrapVector
 
   def getTrapReturn(): UInt = logic.get.csr.io.outReturnPc
+
+  def getDbgMstatus(): Bits = logic.get.csr.io.dbgMstatus
+
+  def getDbgMtvec(): Bits = logic.get.csr.io.dbgMtvec
+
+  def getDbgMepc(): Bits = logic.get.csr.io.dbgMepc
+
+  def getDbgMcause(): Bits = logic.get.csr.io.dbgMcause
 }

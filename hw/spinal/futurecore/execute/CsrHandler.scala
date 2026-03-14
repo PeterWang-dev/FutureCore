@@ -27,6 +27,11 @@ class CsrHandler extends Component {
     val inExceptionPc = in port UInt(32 bits)
     val outTrapVector = out port UInt(32 bits)
     val outReturnPc = out port UInt(32 bits)
+
+    val dbgMstatus = out port Bits(32 bits)
+    val dbgMtvec = out port Bits(32 bits)
+    val dbgMepc = out port Bits(32 bits)
+    val dbgMcause = out port Bits(32 bits)
   }
 
   val csrRegfile = new Area {
@@ -113,6 +118,12 @@ class CsrHandler extends Component {
 
   io.outTrapVector := trapTarget
   io.outReturnPc := returnTarget
+
+  // Debug outputs for CSR registers
+  io.dbgMstatus := csrRegfile.mstatus.reg
+  io.dbgMtvec := csrRegfile.mtvec.reg
+  io.dbgMepc := csrRegfile.mepc.reg
+  io.dbgMcause := csrRegfile.mcause.reg
 }
 
 object CsrHandlerTest extends App {
