@@ -52,6 +52,11 @@ impl From<rv32i::Registers> for Context {
         let mut ctx = Context::default();
         ctx.gpr = *regs.gpr();
         ctx.pc = regs.pc();
+        // Copy CSR values to correct addresses
+        ctx.csr[0x300] = regs.mstatus();
+        ctx.csr[0x305] = regs.mtvec();
+        ctx.csr[0x341] = regs.mepc();
+        ctx.csr[0x342] = regs.mcause();
         ctx
     }
 }
