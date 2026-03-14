@@ -22,7 +22,8 @@ class CsrHandler extends Component {
     val inNewVal = in port Bits(32 bits)
     val outOldVal = out port Bits(32 bits)
 
-    val inEnableException = in port Bool()
+    val inEnableTrap = in port Bool()
+    val inEnableTrapReturn = in port Bool()
     val inSelException = in port ExceptionType()
     val inExceptionPc = in port UInt(32 bits)
     val outTrapVector = out port UInt(32 bits)
@@ -45,7 +46,9 @@ class CsrHandler extends Component {
       val reg = RegInit(B(init, 32 bits))
     }
 
-    val mstatus = CsrReg(0x300, 0x1800) // ! Hardcoded here to pass difftest
+    // ! WARNING: Hardcoded mstatus initial value here to pass difftest!
+    // !          Actually do nothing on mstatus except for direct access.
+    val mstatus = CsrReg(0x300, 0x1800)
     val mtvec = CsrReg(0x305, 0)
     val mepc = CsrReg(0x341, 0)
     val mcause = CsrReg(0x342, 0)
@@ -96,19 +99,35 @@ class CsrHandler extends Component {
   csrRegfile.newVal := io.inNewVal
   io.outOldVal := io.inEnableCsr ? csrRegfile.oldVal | B(0).resized
 
-  // Exception handling logic
+  // Trap handling logic
   /*
     ! SpinalHDL bug: enum.mux() causes NullPointerException when enum has only 1 element.
     ! Workaround: Ensure enum has at least 2 elements.
     !             Using constant here since only Ecall is supported.
     ! https://github.com/SpinalHDL/SpinalHDL/issues/1884
    */
-  val causeId = B"32'hb"
+  val TrapCauseId = B"32'hb"
 
-  // Only accept exception when not csr ops, as csr should be atomic
-  when(io.inEnableException & !io.inEnableCsr) {
-    csrRegfile.mcause.reg := causeId
+  // ! WARNING: Hardcoded mstatus trap value here to pass difftest!
+  // !          Actually do nothing on mstatus except for direct access.
+  val MstatusAfterTrap = B"32'h1800"
+
+  // Only accept trap when not csr ops, as csr should be atomic
+  // ? Actually this the false combination should never happen !
+  when(io.inEnableTrap & !io.inEnableCsr) {
+    csrRegfile.mstatus.reg := MstatusAfterTrap
+    csrRegfile.mcause.reg := TrapCauseId
     csrRegfile.mepc.reg := io.inExceptionPc.asBits
+  }
+
+  // Trap return handling logic
+  // ! WARNING: Hardcoded mstatus return value here to pass difftest!
+  // !          Actually do nothing on mstatus except for direct access.
+  val MstatusAfterTrapReturn = B"32'h80"
+  // Only accept trap return when not csr ops nor trap
+  // ? Actually this the false combination should never happen !
+  when(io.inEnableTrapReturn & !io.inEnableTrap & !io.inEnableCsr) {
+    csrRegfile.mstatus.reg := MstatusAfterTrapReturn
   }
 
   // ! WARNING: the trap vector and epc have been hard wared and may not

@@ -93,9 +93,13 @@ class ExecutePlugin extends FiberPlugin {
       .setWhen(CsrMode.Set, Zicsr.Csrrs)
     cs.registerCtrlSignal(csrModeDef)
 
-    val exceptionEnableDef = CtrlDef(Bool(), False)
+    val trapEnableDef = CtrlDef(Bool(), False)
       .setWhen(True, Rv32i.Ecall)
-    cs.registerCtrlSignal(exceptionEnableDef)
+    cs.registerCtrlSignal(trapEnableDef)
+
+    val trapReturnDef = CtrlDef(Bool(), False)
+      .setWhen(True, Privileged.Mret)
+    cs.registerCtrlSignal(trapReturnDef)
 
     val exceptionTypeDef = CtrlDef(ExceptionType(), ExceptionType.EcallM)
     cs.registerCtrlSignal(exceptionTypeDef)
@@ -117,8 +121,10 @@ class ExecutePlugin extends FiberPlugin {
     val csrEnable = Bool()
     val csrMode = CsrMode()
     val csrAddr = UInt(12 bits)
-    val exceptionEnable = Bool()
+    val trapEnable = Bool()
+    val trapReturn = Bool()
     val exceptionType = ExceptionType()
+
 
     src.io.inRs1 := rs1
     src.io.inRs2 := rs2
@@ -144,7 +150,8 @@ class ExecutePlugin extends FiberPlugin {
     csr.io.inCsrAddr := csrAddr
     csr.io.inNewVal := rs1
 
-    csr.io.inEnableException := exceptionEnable
+    csr.io.inEnableTrap := trapEnable
+    csr.io.inEnableTrapReturn := trapReturn
     csr.io.inSelException := exceptionType
     csr.io.inExceptionPc := pc
   }
@@ -170,7 +177,8 @@ class ExecutePlugin extends FiberPlugin {
     l.csrEnable := cs.getCtrlSignal(l.csrEnableDef)
     l.csrMode := cs.getCtrlSignal(l.csrModeDef)
     l.csrAddr := dp.getCsrAddr()
-    l.exceptionEnable := cs.getCtrlSignal(l.exceptionEnableDef)
+    l.trapEnable := cs.getCtrlSignal(l.trapEnableDef)
+    l.trapReturn := cs.getCtrlSignal(l.trapReturnDef)
     l.exceptionType := cs.getCtrlSignal(l.exceptionTypeDef)
   }
 
