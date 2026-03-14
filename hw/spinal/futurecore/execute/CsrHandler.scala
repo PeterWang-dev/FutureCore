@@ -8,7 +8,7 @@ object CsrHandler {
   }
 
   object ExceptionType extends SpinalEnum {
-    val EcallM = newElement()
+    val EcallM = newElement() // ! Triggers SpinalHDL bug (see below)
   }
 }
 
@@ -93,12 +93,10 @@ class CsrHandler extends Component {
 
   // Exception handling logic
   /*
-     SpinalHDL 的 bug：
-     当 enum.mux() 的结果被用于在 Area 外部赋值 Area 内部的寄存器时，
-     会触发 NullPointerException in PhaseCheckCrossClock。
-
-     Workaround: 直接使用常量代替 enum mux，避免 SpinalHDL bug
-     https://github.com/SpinalHDL/SpinalHDL/issues/XXX
+    ! SpinalHDL bug: enum.mux() causes NullPointerException when enum has only 1 element.
+    ! Workaround: Ensure enum has at least 2 elements.
+    !             Using constant here since only Ecall is supported.
+    ! https://github.com/SpinalHDL/SpinalHDL/issues/1884
    */
   val causeId = B"32'hb"
 
