@@ -23,6 +23,6 @@ class DebugPlugin extends FiberPlugin {
 
     l.probe.io.inPc := fp.getPc()
     l.probe.io.inInst := fp.getInstruction()
-    l.probe.io.inGprs := dp.getDbgRegfile()
+    l.probe.io.inGprs := dp.getDbgIntRegs()
   }
 }
