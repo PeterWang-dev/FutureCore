@@ -125,7 +125,6 @@ class ExecutePlugin extends FiberPlugin {
     val trapReturn = Bool()
     val exceptionType = ExceptionType()
 
-
     src.io.inRs1 := rs1
     src.io.inRs2 := rs2
     src.io.inPc := pc

@@ -8,26 +8,29 @@ import "DPI-C" context function void pmem_write(
 module ram_dpi (
     input wire clk,
     input wire resetn,
-    input wire valid,
-    input wire [31:0] raddr,
-    input wire wen,
-    input wire [31:0] waddr,
+
+    input wire arvalid,
+    input wire [31:0] araddr,
+
+    input wire awvalid,
+    input wire [31:0] awaddr,
+
     input wire [31:0] wdata,
-    input wire [7:0] wmask,
+    input wire [ 7:0] wstrb,
+
     output wire [31:0] rdata
 );
 
   always_ff @(posedge clk) begin
-    if (resetn & valid) begin
-      if (wen) begin  // 有写请求时
-        pmem_write(waddr, wdata, wmask);
-      end
+    if (resetn & awvalid) begin
+      pmem_write(awaddr, wdata, wstrb);
     end
   end
 
-  assign rdata = resetn & valid ? pmem_read(raddr) : 0;
+  assign rdata = resetn & arvalid ? pmem_read(araddr) : 0;
 
 endmodule
+
 
 module rom_dpi (
     input wire clk,
