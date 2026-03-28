@@ -40,7 +40,7 @@ impl Registers {
             mcause,
         }
     }
-    
+
     pub fn gpr(&self) -> &[u32; 32] {
         &self.gpr
     }

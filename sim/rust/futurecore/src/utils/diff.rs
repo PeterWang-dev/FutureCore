@@ -28,11 +28,43 @@ struct Api {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub struct Context {
     gpr: [u32; 32],
     csr: [u32; 4096],
     pc: u32,
+}
+
+impl Context {
+    fn diff(&self, other: &Self) -> Vec<(&'static str, u32, u32)> {
+        const GPR_NAMES: [&str; 32] = [
+            "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13",
+            "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25",
+            "x26", "x27", "x28", "x29", "x30", "x31",
+        ];
+        const CSR_NAMES: [(usize, &str); 4] = [
+            (0x300, "mstatus"),
+            (0x305, "mtvec"),
+            (0x341, "mepc"),
+            (0x342, "mcause"),
+        ];
+
+        let mut diffs = Vec::new();
+        for i in 0..32 {
+            if self.gpr[i] != other.gpr[i] {
+                diffs.push((GPR_NAMES[i], self.gpr[i], other.gpr[i]));
+            }
+        }
+        if self.pc != other.pc {
+            diffs.push(("pc", self.pc, other.pc));
+        }
+        for (addr, name) in CSR_NAMES {
+            if self.csr[addr] != other.csr[addr] {
+                diffs.push((name, self.csr[addr], other.csr[addr]));
+            }
+        }
+        diffs
+    }
 }
 
 impl Default for Context {
@@ -144,11 +176,16 @@ pub fn test(dut_ctx: impl Into<Context>) {
                 );
             }
 
-            if ref_ctx != dut_ctx {
-                panic!(
-                    "Reference registers {:?} do not match DUT registers {:?}",
-                    ref_ctx, dut_ctx
-                );
+            let diffs = dut_ctx.diff(&ref_ctx);
+            if !diffs.is_empty() {
+                let mut msg = String::from("DUT registers do not match reference registers:\n");
+                for (name, dut_val, ref_val) in &diffs {
+                    msg.push_str(&format!(
+                        "  {}: ref=0x{:08x}, dut=0x{:08x}\n",
+                        name, ref_val, dut_val
+                    ));
+                }
+                panic!("{}", msg);
             }
         });
     });
