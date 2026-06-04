@@ -19,6 +19,10 @@ sim:
 	$(call git_commit, "sim RTL")
 	make -C $(SIM_DIR) run ARGS="$(ARGS)" IMG=$(IMG)
 
+sim-wave:
+	$(call git_commit, "sim RTL")
+	make -C $(SIM_DIR) run-wave ARGS="$(ARGS)" IMG=$(IMG)
+
 test:
 	$(call git_commit, "test RTL")
 	mill -i __.test
@@ -44,7 +48,6 @@ idea:
 
 clean:
 	@make -C $(SIM_DIR) clean
-	-rm $(GEN_DIR)/*
 
 clean-verilog:
 	-rm $(GEN_DIR)/*
