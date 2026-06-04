@@ -6,7 +6,8 @@ module ebreak_dpi (
     input wire s_valid_i,
     input wire [31:0] s_status_i
 );
-  always @(posedge clk_i) begin
+
+  always_comb begin : ebreak_call
     if (rst_ni & s_valid_i) begin
       ebreak(s_status_i);
     end
