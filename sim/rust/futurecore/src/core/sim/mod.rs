@@ -65,9 +65,9 @@ impl Executor for Simulator {
             &executor.devices,
         );
 
-        // let diff_ctx: Registers = executor.registers.borrow().clone();
-        // let diff_mem: Memory = executor.memory.borrow().clone();
-        // diff_init(diff_mem, diff_ctx);
+        let diff_ctx: Registers = executor.registers.borrow().clone();
+        let diff_mem: Memory = executor.memory.borrow().clone();
+        diff_init(diff_mem, diff_ctx);
 
         executor.runtime.reset(10);
 
@@ -84,9 +84,9 @@ impl Executor for Simulator {
                 break;
             }
             cycle_executed += 1;
-            // if cycle_executed > 1 {
-            //     diff_test(self.registers.borrow().clone());
-            // };
+            if cycle_executed > 1 {
+                diff_test(self.registers.borrow().clone());
+            };
         }
 
         Ok(())

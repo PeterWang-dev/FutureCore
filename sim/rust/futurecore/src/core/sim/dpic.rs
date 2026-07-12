@@ -4,7 +4,7 @@ use crate::{
     dev::{DEVICE_RANGE, DeviceList},
     error::DeviceError,
     mem::Memory,
-    utils::diff::set_skip_ref,
+    utils::diff::{request_skip_ref_read, request_skip_ref_write},
 };
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -63,7 +63,9 @@ fn get_devices() -> Ref<'static, DeviceList> {
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_read(raddr: u32) -> u32 {
     if DEVICE_RANGE.contains(&raddr) {
-        set_skip_ref(true);
+        // Async combinational read: the pmem_read is scheduled before the
+        // instruction commits, so the skip must be delayed to the next test().
+        request_skip_ref_read();
         let devices = get_devices();
         match devices.read(raddr) {
             Ok(data) => data,
@@ -83,7 +85,6 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
             }
         }
     } else {
-        set_skip_ref(false);
         let memory = get_memory();
         match memory.read(raddr) {
             Ok(data) => data,
@@ -95,13 +96,14 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
     if DEVICE_RANGE.contains(&waddr) {
-        set_skip_ref(true);
+        // Synchronous posedge write: coincides with the commit, so the skip
+        // applies to the current test().
+        request_skip_ref_write();
         let devices = get_devices();
         if let Err(e) = devices.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);
         }
     } else {
-        set_skip_ref(false);
         let mut memory = get_memory_mut();
         if let Err(e) = memory.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);

@@ -15,7 +15,14 @@ const DIFF_PORT: i32 = 1234;
 
 thread_local! {
     static CONTAINER: OnceCell<Container<Api>> = OnceCell::new();
-    static DO_SKIP_REF: Cell<bool> = Cell::new(false);
+    // Sticky MMIO read request: set by async `pmem_read()` on device range,
+    // consumed and cleared by `test()`. Delayed by one `test()` invocation
+    // via `SKIP_READ` because the combinational read precedes the commit.
+    static DO_SKIP_REF_READ: Cell<bool> = Cell::new(false);
+    // Sticky MMIO write request: set by `pmem_write()` on device range at the
+    // posedge, consumed and cleared by `test()`. Applied to the current
+    // `test()` because the posedge write coincides with the commit.
+    static DO_SKIP_REF_WRITE: Cell<bool> = Cell::new(false);
 }
 
 #[derive(WrapperApi)]
@@ -137,56 +144,59 @@ pub fn init(init_mem: Memory, init_ctx: impl Into<Context>) {
     });
 }
 
-pub fn set_skip_ref(value: bool) {
-    DO_SKIP_REF.with(|do_skip_ref| {
-        do_skip_ref.replace(value);
-    });
+pub fn request_skip_ref_read() {
+    DO_SKIP_REF_READ.with(|flag| flag.set(true));
+}
+
+pub fn request_skip_ref_write() {
+    DO_SKIP_REF_WRITE.with(|flag| flag.set(true));
 }
 
 pub fn test(dut_ctx: impl Into<Context>) {
     let dut_ctx = dut_ctx.into();
     let mut ref_ctx = dut_ctx.clone();
-    static SKIP: AtomicBool = AtomicBool::new(false);
+    // One-test delay for async MMIO reads: a read observed during the previous
+    // `test()` window corresponds to the instruction committing in this window.
+    static SKIP_READ: AtomicBool = AtomicBool::new(false);
 
     CONTAINER.with(|cont| {
         let cont = cont.get().expect("CONTAINER not initialized");
 
-        DO_SKIP_REF.with(|do_skip_ref| {
-            if SKIP.load(Ordering::Acquire) {
-                let skipped_ctx = dut_ctx.clone();
-                unsafe {
-                    cont.difftest_regcpy(
-                        &skipped_ctx as *const Context as *const c_void,
-                        Direction::ToRef.into(),
-                    );
-                }
-                SKIP.store(do_skip_ref.replace(false), Ordering::Release);
-                return;
-            }
+        let do_skip_read = DO_SKIP_REF_READ.with(|flag| flag.replace(false));
+        let do_skip_write = DO_SKIP_REF_WRITE.with(|flag| flag.replace(false));
+        let skip_prev_read = SKIP_READ.load(Ordering::Acquire);
 
-            if do_skip_ref.get() {
-                SKIP.store(do_skip_ref.replace(false), Ordering::Release);
-            }
+        let skip_current = skip_prev_read || do_skip_write;
+        SKIP_READ.store(do_skip_read, Ordering::Release);
 
+        if skip_current {
             unsafe {
-                cont.difftest_exec(1);
                 cont.difftest_regcpy(
-                    &mut ref_ctx as *mut Context as *mut c_void,
-                    Direction::ToDut.into(),
+                    &dut_ctx as *const Context as *const c_void,
+                    Direction::ToRef.into(),
                 );
             }
+            return;
+        }
 
-            let diffs = dut_ctx.diff(&ref_ctx);
-            if !diffs.is_empty() {
-                let mut msg = String::from("DUT registers do not match reference registers:\n");
-                for (name, dut_val, ref_val) in &diffs {
-                    msg.push_str(&format!(
-                        "  {}: ref=0x{:08x}, dut=0x{:08x}\n",
-                        name, ref_val, dut_val
-                    ));
-                }
-                panic!("{}", msg);
+        unsafe {
+            cont.difftest_exec(1);
+            cont.difftest_regcpy(
+                &mut ref_ctx as *mut Context as *mut c_void,
+                Direction::ToDut.into(),
+            );
+        }
+
+        let diffs = dut_ctx.diff(&ref_ctx);
+        if !diffs.is_empty() {
+            let mut msg = String::from("DUT registers do not match reference registers:\n");
+            for (name, dut_val, ref_val) in &diffs {
+                msg.push_str(&format!(
+                    "  {}: ref=0x{:08x}, dut=0x{:08x}\n",
+                    name, ref_val, dut_val
+                ));
             }
-        });
+            panic!("{}", msg);
+        }
     });
 }
