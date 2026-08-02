@@ -3,7 +3,7 @@ package futurecore.execute
 import spinal.core._
 
 import futurecore.ip.blackbox.ram_dpi
-import futurecore.misc.TypeExtensions.BitsSextExtension
+import futurecore.misc.TypeExtensions.{BitsSextExtension, BitsZeroExtension}
 
 object DataMemory {
   object AccessWidth extends SpinalEnum {
@@ -38,13 +38,13 @@ class DataMemory extends Component {
 
   val mem = new ram_dpi
 
-  mem.io.valid := io.inValidAddr
-  mem.io.raddr := io.inAddr
+  mem.io.ar.valid := io.inValidAddr & !io.inEnableWrite
+  mem.io.ar.addr := io.inAddr
 
-  val memData = mem.io.rdata
-  val dataByteZeroExt = byte(memData).resized
+  val memData = mem.io.r.data
+  val dataByteZeroExt = byte(memData).zext.asBits
   val dataByteSignExt = byte(memData).sext.asBits
-  val dataHalfZeroExt = half(memData).resized
+  val dataHalfZeroExt = half(memData).zext.asBits
   val dataHalfSignExt = half(memData).sext.asBits
 
   io.outDataRead := io.inSelAccessWidth.mux(
@@ -53,10 +53,10 @@ class DataMemory extends Component {
     AccessWidth.Word -> memData
   )
 
-  mem.io.wen := io.inEnableWrite
-  mem.io.waddr := io.inAddr
-  mem.io.wdata := io.inDataWrite
-  mem.io.wmask := io.inSelAccessWidth.mux(
+  mem.io.aw.valid := io.inEnableWrite & io.inValidAddr
+  mem.io.aw.addr := io.inAddr
+  mem.io.w.data := io.inDataWrite
+  mem.io.w.strb := io.inSelAccessWidth.mux(
     AccessWidth.Byte -> WriteMask.byte(),
     AccessWidth.Half -> WriteMask.half(),
     AccessWidth.Word -> WriteMask.word()

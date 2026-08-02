@@ -3,7 +3,7 @@ package futurecore.riscv
 import spinal.core._
 
 /** RV32I Base Instruction Set Dinition */
-object Rvi extends InstructionSet {
+object Rv32i extends InstructionSet {
   object Opcode extends BitField(6 downto 0)
   object Rd extends BitField(11 downto 7)
   object Funct3 extends BitField(14 downto 12)
@@ -12,7 +12,7 @@ object Rvi extends InstructionSet {
   object Funct7 extends BitField(31 downto 25)
 
   // Immediate Definitions (Little Endian)
-  class Imm(r: Range*) extends BitField(r: _*)
+  abstract class Imm(r: Range*) extends BitField(r: _*)
   // I-type immediate: single contiguous range [31:20]
   object IImm extends Imm(31 downto 20)
   // S-type immediate: distributed across two ranges [31:25|11:7]
@@ -94,13 +94,15 @@ object Rvi extends InstructionSet {
   val Pause = TypeI(M"0000_0001_0000_-----_000_-----_0001111")
 
   // I-type: Environment (funct12_rs1_000_rd_1110011)
+  // ! WARNING: Ecall & Ebreak are PRIVILEGED related instructions!
+  // !          Refer to Privileged.scala!
   val Ecall = TypeI(M"000000000000_00000_000_00000_1110011")
   val Ebreak = TypeI(M"000000000001_00000_000_00000_1110011")
 
   // InstructionSet trait implementation
   override def ident: String = "rv32i"
 
-  override def instructions: Seq[Instruction] = List(
+  override def instructions: Seq[Instruction] = Seq(
     Lui,
     Auipc,
     Jal,
@@ -141,7 +143,7 @@ object Rvi extends InstructionSet {
     // Fence,
     // FenceTso,
     // Pause,
-    // Ecall,
+    Ecall,
     Ebreak
   )
 }

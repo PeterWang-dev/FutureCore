@@ -6,7 +6,7 @@ import spinal.lib.misc.plugin.FiberPlugin
 
 import futurecore.decode.CtrlService
 import futurecore.decode.CtrlService.CtrlDef
-import futurecore.riscv.Rvi
+import futurecore.riscv.{Rv32i, Zicsr}
 import futurecore.execute.ExecutePlugin
 
 class WritebackPlugin extends FiberPlugin {
@@ -25,26 +25,29 @@ class WritebackPlugin extends FiberPlugin {
     val com = new CommitSelector
     val ebreak = new EbreakHandler
 
-    val commitSrcDef = CtrlDef(CommitSource(), CommitSource.Result)
-      .setWhen(CommitSource.Memory, Rvi.Lb, Rvi.Lh, Rvi.Lw, Rvi.Lbu, Rvi.Lhu)
+    val commitSrcDef = CtrlDef(CommitSource(), CommitSource.AluResults)
+      .setWhen(CommitSource.Memory, Rv32i.Lb, Rv32i.Lh, Rv32i.Lw, Rv32i.Lbu, Rv32i.Lhu)
+      .setWhen(CommitSource.CsrValue, Zicsr.instructions)
     cs.registerCtrlSignal(commitSrcDef)
 
-    val isEbreakDef = CtrlDef(Bool(), False).setWhen(True, Rvi.Ebreak)
+    val isEbreakDef = CtrlDef(Bool(), False).setWhen(True, Rv32i.Ebreak)
     cs.registerCtrlSignal(isEbreakDef)
 
     buildBefore.release()
 
-    val result = SInt(32 bits)
+    val aluResult = SInt(32 bits)
+    val csrValue = Bits(32 bits)
     val memOut = Bits(32 bits)
     val commitSrc = CommitSource()
     val isEbreak = Bool()
 
-    com.io.inResult := result
+    com.io.inAluResult := aluResult
+    com.io.inCsrValue := csrValue
     com.io.inMemory := memOut
     com.io.inSelSource := commitSrc
 
     ebreak.io.inEnable := isEbreak
-    ebreak.io.inReturnStatus := result
+    ebreak.io.inReturnStatus := aluResult
   }
 
   val interconnect = during build new Area {
@@ -52,7 +55,8 @@ class WritebackPlugin extends FiberPlugin {
     val cs = setup.get.cs
     val l = logic.get
 
-    l.result := ep.getResult()
+    l.aluResult := ep.getAluResult()
+    l.csrValue := ep.getCsrValue()
     l.memOut := ep.getMemOut()
     l.commitSrc := cs.getCtrlSignal(l.commitSrcDef)
     l.isEbreak := cs.getCtrlSignal(l.isEbreakDef)

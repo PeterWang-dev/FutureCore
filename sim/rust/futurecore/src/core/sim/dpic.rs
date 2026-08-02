@@ -4,7 +4,7 @@ use crate::{
     dev::{DEVICE_RANGE, DeviceList},
     error::DeviceError,
     mem::Memory,
-    utils::diff::set_skip_ref,
+    utils::diff::{request_skip_ref_read, request_skip_ref_write},
 };
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -63,7 +63,9 @@ fn get_devices() -> Ref<'static, DeviceList> {
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_read(raddr: u32) -> u32 {
     if DEVICE_RANGE.contains(&raddr) {
-        set_skip_ref(true);
+        // Async combinational read: the pmem_read is scheduled before the
+        // instruction commits, so the skip must be delayed to the next test().
+        request_skip_ref_read();
         let devices = get_devices();
         match devices.read(raddr) {
             Ok(data) => data,
@@ -83,7 +85,6 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
             }
         }
     } else {
-        set_skip_ref(false);
         let memory = get_memory();
         match memory.read(raddr) {
             Ok(data) => data,
@@ -95,13 +96,14 @@ pub extern "C" fn pmem_read(raddr: u32) -> u32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn pmem_write(waddr: u32, wdata: u32, wmask: u8) {
     if DEVICE_RANGE.contains(&waddr) {
-        set_skip_ref(true);
+        // Synchronous posedge write: coincides with the commit, so the skip
+        // applies to the current test().
+        request_skip_ref_write();
         let devices = get_devices();
         if let Err(e) = devices.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);
         }
     } else {
-        set_skip_ref(false);
         let mut memory = get_memory_mut();
         if let Err(e) = memory.write(waddr, wdata, wmask) {
             panic!("error: pmem_write: {}", e);
@@ -132,27 +134,46 @@ pub extern "C" fn get_regs(gpr: *const u64) {
             .map(|n| *n as u32)
             .collect::<Vec<u32>>()
     };
-    let mut regs = REGISTERS
+
+    let mut gpr_array = [0u32; 32];
+    gpr_array.copy_from_slice(&gpr[0..32]);
+    let pc = gpr[32];
+
+    let regs = Registers::with_fields(&gpr_array, pc, 0x1800, 0, 0, 0);
+
+    let mut dpi_regs = REGISTERS
         .get()
         .expect("DPI-REGISTERS not initialized")
         .borrow_mut();
-    *regs = Registers::try_from(gpr.as_slice())
-        .expect("Failed to convert raw registers to rv32i::Registers");
+    *dpi_regs = regs;
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn send_state(pc: *const u32, _inst: *const u32, gprs: *const u32) {
-    let gprs = unsafe { slice::from_raw_parts(gprs, 32) };
+pub extern "C" fn send_state(
+    pc: *const u32,
+    _inst: *const u32,
+    gprs: *const u32,
+    mstatus: *const u32,
+    mtvec: *const u32,
+    mepc: *const u32,
+    mcause: *const u32,
+) {
+    let gprs = unsafe { slice::from_raw_parts(gprs, 32) }
+        .as_array::<32>()
+        .expect("size of gprs passed in is not 32");
     let pc = unsafe { *pc };
+    let mstatus = unsafe { *mstatus };
+    let mtvec = unsafe { *mtvec };
+    let mepc = unsafe { *mepc };
+    let mcause = unsafe { *mcause };
 
-    let gpr_pc: Vec<u32> = [gprs, &[pc]].concat();
+    let regs = Registers::with_fields(gprs, pc, mstatus, mtvec, mepc, mcause);
 
-    let mut regs = REGISTERS
+    let mut dpi_regs = REGISTERS
         .get()
         .expect("DPI-REGISTERS not initialized")
         .borrow_mut();
-    *regs = Registers::try_from(gpr_pc.as_slice())
-        .expect("Failed to convert raw registers to rv32i::Registers");
+    *dpi_regs = regs;
 }
 
 pub fn init(

@@ -12,11 +12,33 @@ pub const DEFAULT_IMAGE: [u32; 5] = [
 pub struct Registers {
     gpr: [u32; 32],
     pc: u32,
+    mstatus: u32,
+    mtvec: u32,
+    mepc: u32,
+    mcause: u32,
 }
 
 impl Registers {
     pub fn new() -> Self {
         Registers::default()
+    }
+
+    pub fn with_fields(
+        gprs: &[u32; 32],
+        pc: u32,
+        mstatus: u32,
+        mtvec: u32,
+        mepc: u32,
+        mcause: u32,
+    ) -> Self {
+        Registers {
+            gpr: *gprs,
+            pc,
+            mstatus,
+            mtvec,
+            mepc,
+            mcause,
+        }
     }
 
     pub fn gpr(&self) -> &[u32; 32] {
@@ -26,6 +48,22 @@ impl Registers {
     pub fn pc(&self) -> u32 {
         self.pc
     }
+
+    pub fn mstatus(&self) -> u32 {
+        self.mstatus
+    }
+
+    pub fn mtvec(&self) -> u32 {
+        self.mtvec
+    }
+
+    pub fn mepc(&self) -> u32 {
+        self.mepc
+    }
+
+    pub fn mcause(&self) -> u32 {
+        self.mcause
+    }
 }
 
 impl Default for Registers {
@@ -33,20 +71,10 @@ impl Default for Registers {
         Registers {
             gpr: [0; 32],
             pc: RESET_VECTOR,
+            mstatus: 0x1800, // MPP=0b11 (machine mode)
+            mtvec: 0,
+            mepc: 0,
+            mcause: 0,
         }
-    }
-}
-
-impl TryFrom<&[u32]> for Registers {
-    type Error = &'static str;
-
-    fn try_from(value: &[u32]) -> Result<Self, Self::Error> {
-        if value.len() != 33 {
-            return Err("Expected 32 GPRs and 1 PC, got a different length");
-        }
-        let mut regs = Registers::new();
-        regs.gpr.copy_from_slice(&value[0..32]);
-        regs.pc = value[32];
-        Ok(regs)
     }
 }

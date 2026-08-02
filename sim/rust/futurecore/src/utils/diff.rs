@@ -15,7 +15,14 @@ const DIFF_PORT: i32 = 1234;
 
 thread_local! {
     static CONTAINER: OnceCell<Container<Api>> = OnceCell::new();
-    static DO_SKIP_REF: Cell<bool> = Cell::new(false);
+    // Sticky MMIO read request: set by async `pmem_read()` on device range,
+    // consumed and cleared by `test()`. Delayed by one `test()` invocation
+    // via `SKIP_READ` because the combinational read precedes the commit.
+    static DO_SKIP_REF_READ: Cell<bool> = Cell::new(false);
+    // Sticky MMIO write request: set by `pmem_write()` on device range at the
+    // posedge, consumed and cleared by `test()`. Applied to the current
+    // `test()` because the posedge write coincides with the commit.
+    static DO_SKIP_REF_WRITE: Cell<bool> = Cell::new(false);
 }
 
 #[derive(WrapperApi)]
@@ -28,11 +35,43 @@ struct Api {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub struct Context {
     gpr: [u32; 32],
     csr: [u32; 4096],
     pc: u32,
+}
+
+impl Context {
+    fn diff(&self, other: &Self) -> Vec<(&'static str, u32, u32)> {
+        const GPR_NAMES: [&str; 32] = [
+            "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11", "x12", "x13",
+            "x14", "x15", "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23", "x24", "x25",
+            "x26", "x27", "x28", "x29", "x30", "x31",
+        ];
+        const CSR_NAMES: [(usize, &str); 4] = [
+            (0x300, "mstatus"),
+            (0x305, "mtvec"),
+            (0x341, "mepc"),
+            (0x342, "mcause"),
+        ];
+
+        let mut diffs = Vec::new();
+        for i in 0..32 {
+            if self.gpr[i] != other.gpr[i] {
+                diffs.push((GPR_NAMES[i], self.gpr[i], other.gpr[i]));
+            }
+        }
+        if self.pc != other.pc {
+            diffs.push(("pc", self.pc, other.pc));
+        }
+        for (addr, name) in CSR_NAMES {
+            if self.csr[addr] != other.csr[addr] {
+                diffs.push((name, self.csr[addr], other.csr[addr]));
+            }
+        }
+        diffs
+    }
 }
 
 impl Default for Context {
@@ -52,6 +91,11 @@ impl From<rv32i::Registers> for Context {
         let mut ctx = Context::default();
         ctx.gpr = *regs.gpr();
         ctx.pc = regs.pc();
+        // Copy CSR values to correct addresses
+        ctx.csr[0x300] = regs.mstatus();
+        ctx.csr[0x305] = regs.mtvec();
+        ctx.csr[0x341] = regs.mepc();
+        ctx.csr[0x342] = regs.mcause();
         ctx
     }
 }
@@ -100,51 +144,59 @@ pub fn init(init_mem: Memory, init_ctx: impl Into<Context>) {
     });
 }
 
-pub fn set_skip_ref(value: bool) {
-    DO_SKIP_REF.with(|do_skip_ref| {
-        do_skip_ref.replace(value);
-    });
+pub fn request_skip_ref_read() {
+    DO_SKIP_REF_READ.with(|flag| flag.set(true));
+}
+
+pub fn request_skip_ref_write() {
+    DO_SKIP_REF_WRITE.with(|flag| flag.set(true));
 }
 
 pub fn test(dut_ctx: impl Into<Context>) {
     let dut_ctx = dut_ctx.into();
     let mut ref_ctx = dut_ctx.clone();
-    static SKIP: AtomicBool = AtomicBool::new(false);
+    // One-test delay for async MMIO reads: a read observed during the previous
+    // `test()` window corresponds to the instruction committing in this window.
+    static SKIP_READ: AtomicBool = AtomicBool::new(false);
 
     CONTAINER.with(|cont| {
         let cont = cont.get().expect("CONTAINER not initialized");
 
-        DO_SKIP_REF.with(|do_skip_ref| {
-            if SKIP.load(Ordering::Acquire) {
-                let skipped_ctx = dut_ctx.clone();
-                unsafe {
-                    cont.difftest_regcpy(
-                        &skipped_ctx as *const Context as *const c_void,
-                        Direction::ToRef.into(),
-                    );
-                }
-                SKIP.store(do_skip_ref.replace(false), Ordering::Release);
-                return;
-            }
+        let do_skip_read = DO_SKIP_REF_READ.with(|flag| flag.replace(false));
+        let do_skip_write = DO_SKIP_REF_WRITE.with(|flag| flag.replace(false));
+        let skip_prev_read = SKIP_READ.load(Ordering::Acquire);
 
-            if do_skip_ref.get() {
-                SKIP.store(do_skip_ref.replace(false), Ordering::Release);
-            }
+        let skip_current = skip_prev_read || do_skip_write;
+        SKIP_READ.store(do_skip_read, Ordering::Release);
 
+        if skip_current {
             unsafe {
-                cont.difftest_exec(1);
                 cont.difftest_regcpy(
-                    &mut ref_ctx as *mut Context as *mut c_void,
-                    Direction::ToDut.into(),
+                    &dut_ctx as *const Context as *const c_void,
+                    Direction::ToRef.into(),
                 );
             }
+            return;
+        }
 
-            if ref_ctx != dut_ctx {
-                panic!(
-                    "Reference registers {:?} do not match DUT registers {:?}",
-                    ref_ctx, dut_ctx
-                );
+        unsafe {
+            cont.difftest_exec(1);
+            cont.difftest_regcpy(
+                &mut ref_ctx as *mut Context as *mut c_void,
+                Direction::ToDut.into(),
+            );
+        }
+
+        let diffs = dut_ctx.diff(&ref_ctx);
+        if !diffs.is_empty() {
+            let mut msg = String::from("DUT registers do not match reference registers:\n");
+            for (name, dut_val, ref_val) in &diffs {
+                msg.push_str(&format!(
+                    "  {}: ref=0x{:08x}, dut=0x{:08x}\n",
+                    name, ref_val, dut_val
+                ));
             }
-        });
+            panic!("{}", msg);
+        }
     });
 }

@@ -7,7 +7,8 @@ import spinal.lib.misc.plugin.FiberPlugin
 
 import scala.collection.mutable.Map
 
-import futurecore.riscv.Rvi
+import futurecore.Globals.AllInstructions
+import futurecore.riscv.{Rv32i, Zicsr, Privileged}
 import futurecore.fetch.FetchPlugin
 import futurecore.writeback.WritebackPlugin
 
@@ -25,48 +26,51 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     val regfile = new IntRegfile
 
     val immSelDef = CtrlDef(ImmMode(), ImmMode.I)
-      .setWhen(ImmMode.S, Rvi.instructions.filter(_.fields.contains(Rvi.SImm)))
-      .setWhen(ImmMode.B, Rvi.instructions.filter(_.fields.contains(Rvi.BImm)))
-      .setWhen(ImmMode.U, Rvi.instructions.filter(_.fields.contains(Rvi.UImm)))
-      .setWhen(ImmMode.J, Rvi.instructions.filter(_.fields.contains(Rvi.JImm)))
+      .setWhen(ImmMode.S, Rv32i.instructions.filter(_.fields.contains(Rv32i.SImm)))
+      .setWhen(ImmMode.B, Rv32i.instructions.filter(_.fields.contains(Rv32i.BImm)))
+      .setWhen(ImmMode.U, Rv32i.instructions.filter(_.fields.contains(Rv32i.UImm)))
+      .setWhen(ImmMode.J, Rv32i.instructions.filter(_.fields.contains(Rv32i.JImm)))
     registerCtrlSignal(immSelDef)
 
     val rfWriteEnableDef = CtrlDef(Bool(), False)
       .setWhen(
         True,
-        Rvi.instructions
-          .filter(_.fields.contains(Rvi.Rd))
-          .filterNot(_ == Rvi.Ebreak)
+        Rv32i.instructions
+          .filter(_.fields.contains(Rv32i.Rd))
+          .filterNot(_ == Rv32i.Ebreak)
       )
+      .setWhen(True, Zicsr.instructions.filter(_.fields.contains(Zicsr.Rd)))
     registerCtrlSignal(rfWriteEnableDef)
 
     ctrlLock.await()
 
     val ctrlArea = new Area {
-      val instruction = Bits(32 bits)
+      val inst = Bits(32 bits)
 
       val map = ctrlSignals.map { ctrlDef =>
         val spec = ctrlDef.toDecodingSpec
-        val signal = spec.build(instruction, Rvi.instructions.map(_.toMasked))
+        val signal = spec.build(inst, AllInstructions.map(_.toMasked))
         ctrlDef -> signal
       }.toMap
     }
 
-    val instruction = Bits(32 bits)
-    val writebackData = Bits(32 bits)
+    val inst = Bits(32 bits)
     val immSel = ImmMode()
+    val writebackData = Bits(32 bits)
     val rfWriteEnable = Bool()
 
-    ctrlArea.instruction := instruction
+    ctrlArea.inst := inst
 
-    immGen.io.inInst := instruction
+    immGen.io.inInst := inst
     immGen.io.inSelMode := immSel
 
-    regfile.io.inAddrReadA := Rvi.Rs1.extract(instruction).asUInt
-    regfile.io.inAddrReadB := Rvi.Rs2.extract(instruction).asUInt
-    regfile.io.inAddrWrite := Rvi.Rd.extract(instruction).asUInt
-    regfile.io.inDataWrite := writebackData
+    regfile.io.inAddrReadA := Rv32i.Rs1.extract(inst).asUInt
+    regfile.io.inAddrReadB := Rv32i.Rs2.extract(inst).asUInt
+    regfile.io.inAddrWrite := Rv32i.Rd.extract(inst).asUInt
     regfile.io.inEnableWrite := rfWriteEnable
+    regfile.io.inDataWrite := writebackData
+
+    val csrAddr = Zicsr.Csr.extract(inst).asUInt
   }
 
   val interconnect = during build new Area {
@@ -74,7 +78,7 @@ class DecodePlugin extends FiberPlugin with CtrlService {
     val wp = setup.get.wp
     val l = logic.get
 
-    l.instruction := fp.getInstruction()
+    l.inst := fp.getInstruction()
     l.writebackData := wp.getWriteback()
     l.immSel := getCtrlSignal(l.immSelDef)
     l.rfWriteEnable := getCtrlSignal(l.rfWriteEnableDef)
@@ -93,7 +97,9 @@ class DecodePlugin extends FiberPlugin with CtrlService {
 
   def getImm(): SInt = logic.get.immGen.io.outImm
 
+  def getCsrAddr(): UInt = logic.get.csrAddr
+
   def getReturnStatus(): SInt = logic.get.regfile.io.outSpecialRet.asSInt
 
-  def getDbgRegfile(): Vec[Bits] = logic.get.regfile.io.outDbgRegisters
+  def getDbgIntRegs(): Vec[Bits] = logic.get.regfile.io.dbgIntRegisters
 }
